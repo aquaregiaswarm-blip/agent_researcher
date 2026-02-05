@@ -35,6 +35,7 @@ def run_research_sync(job_id: str):
             'vertical': None,
             'competitor_case_studies': None,
             'gap_analysis': None,
+            'web_sources': None,
         }
 
         result = research_workflow.invoke(initial_state)

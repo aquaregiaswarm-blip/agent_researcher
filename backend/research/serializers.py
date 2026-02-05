@@ -34,6 +34,7 @@ class ResearchReportSerializer(serializers.ModelSerializer):
             'strategic_goals',
             'key_initiatives',
             'talking_points',
+            'web_sources',
             'created_at',
             'updated_at',
         ]

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ResearchJob, ResearchReport, CompetitorCaseStudy, GapAnalysis, InternalOpsIntel, GapCorrelation } from '@/types';
+import { ResearchJob, ResearchReport, CompetitorCaseStudy, GapAnalysis, InternalOpsIntel, GapCorrelation, WebSource } from '@/types';
 
 interface ResearchResultsProps {
   job: ResearchJob;
 }
 
-type TabId = 'overview' | 'report' | 'competitors' | 'gaps' | 'intel' | 'raw';
+type TabId = 'overview' | 'report' | 'competitors' | 'gaps' | 'intel' | 'sources' | 'raw';
 
 export default function ResearchResults({ job }: ResearchResultsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -18,6 +18,7 @@ export default function ResearchResults({ job }: ResearchResultsProps) {
     { id: 'competitors' as TabId, label: 'Competitors', available: !!job.competitor_case_studies?.length },
     { id: 'gaps' as TabId, label: 'Gap Analysis', available: !!job.gap_analysis },
     { id: 'intel' as TabId, label: 'Inside Intel', available: !!job.internal_ops },
+    { id: 'sources' as TabId, label: 'Sources', available: !!(job.report?.web_sources?.length) },
     { id: 'raw' as TabId, label: 'Raw Output', available: !!job.result },
   ];
 
@@ -80,6 +81,9 @@ export default function ResearchResults({ job }: ResearchResultsProps) {
             )}
             {activeTab === 'gaps' && job.gap_analysis && <GapsTab gaps={job.gap_analysis} />}
             {activeTab === 'intel' && job.internal_ops && <InsideIntelTab intel={job.internal_ops} />}
+            {activeTab === 'sources' && job.report?.web_sources && (
+              <SourcesTab sources={job.report.web_sources} />
+            )}
             {activeTab === 'raw' && <RawTab result={job.result} />}
           </>
         )}
@@ -724,6 +728,55 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
       {intel.analysis_notes && (
         <p className="text-xs text-gray-500 italic">{intel.analysis_notes}</p>
       )}
+    </div>
+  );
+}
+
+function SourcesTab({ sources }: { sources: WebSource[] }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-gray-800 mb-4">
+        Research grounded with {sources.length} web source{sources.length !== 1 ? 's' : ''}
+      </p>
+      <div className="space-y-3">
+        {sources.map((source, i) => (
+          <div key={i} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-xs text-blue-600 font-medium">{i + 1}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h5 className="font-medium text-gray-900 truncate">
+                  {source.title || 'Untitled Source'}
+                </h5>
+                {source.uri && (
+                  <a
+                    href={source.uri}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate block mt-1"
+                  >
+                    {source.uri}
+                  </a>
+                )}
+              </div>
+              {source.uri && (
+                <a
+                  href={source.uri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
+                >
+                  Open
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-gray-500 mt-4">
+        Sources are collected via Google Search grounding to provide real-time, verified information.
+      </p>
     </div>
   );
 }

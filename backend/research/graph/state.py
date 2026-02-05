@@ -46,3 +46,6 @@ class ResearchState(TypedDict):
 
     # Gap Correlations (AGE-20)
     gap_correlations: Optional[list]
+
+    # Web sources from Google Search grounding
+    web_sources: Optional[list]

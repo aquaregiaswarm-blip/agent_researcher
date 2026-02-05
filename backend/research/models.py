@@ -95,6 +95,9 @@ class ResearchReport(models.Model):
     # Talking points for sales
     talking_points = models.JSONField(default=list, blank=True)
 
+    # Web sources from Google Search grounding
+    web_sources = models.JSONField(default=list, blank=True)
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

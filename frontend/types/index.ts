@@ -1,3 +1,9 @@
+// Web source from Google Search grounding
+export interface WebSource {
+  uri: string;
+  title: string;
+}
+
 // Decision maker from research report
 export interface DecisionMaker {
   name: string;
@@ -34,6 +40,7 @@ export interface ResearchReport {
   strategic_goals: string[];
   key_initiatives: string[];
   talking_points: string[];
+  web_sources?: WebSource[];
   created_at: string;
   updated_at: string;
 }

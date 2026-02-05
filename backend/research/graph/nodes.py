@@ -29,7 +29,7 @@ def validate_input(state: ResearchState) -> ResearchState:
 
 
 def conduct_research(state: ResearchState) -> ResearchState:
-    """Conduct deep research using Gemini API (AGE-10)."""
+    """Conduct deep research using Gemini API with Google Search grounding (AGE-10)."""
     if state.get('status') == 'failed':
         return state
 
@@ -38,14 +38,19 @@ def conduct_research(state: ResearchState) -> ResearchState:
 
         client = GeminiClient()
 
-        # Conduct structured deep research
-        report_data = client.conduct_deep_research(
+        # Conduct structured deep research with grounding
+        report_data, grounding_metadata = client.conduct_deep_research(
             client_name=state.get('client_name', ''),
             sales_history=state.get('sales_history', ''),
         )
 
         # Convert to dict for state storage
         report_dict = report_data.to_dict()
+
+        # Extract web sources from grounding metadata
+        web_sources = []
+        if grounding_metadata:
+            web_sources = grounding_metadata.to_dict().get('web_sources', [])
 
         # Also generate plain text result for backward compatibility
         result_text = _format_research_result(report_dict)
@@ -55,6 +60,7 @@ def conduct_research(state: ResearchState) -> ResearchState:
             'status': 'classifying',
             'result': result_text,
             'research_report': report_dict,
+            'web_sources': web_sources,
         }
 
     except Exception as e:
@@ -339,6 +345,7 @@ def finalize_result(state: ResearchState) -> ResearchState:
                     'strategic_goals': report_data.get('strategic_goals', []),
                     'key_initiatives': report_data.get('key_initiatives', []),
                     'talking_points': report_data.get('talking_points', []),
+                    'web_sources': state.get('web_sources', []),
                 }
             )
 
