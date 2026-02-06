@@ -747,9 +747,9 @@ class ExportService:
             if report.decision_makers:
                 sections.append('<div class="subsection-title">Key Decision Makers</div>')
                 for dm in report.decision_makers:
-                    name = html.escape(dm.get('name', ''))
-                    title = html.escape(dm.get('title', ''))
-                    background = html.escape(dm.get('background', ''))
+                    name = html.escape(dm.get('name') or '')
+                    title = html.escape(dm.get('title') or '')
+                    background = html.escape(dm.get('background') or '')
                     sections.append(f'''
                     <div class="card">
                         <div class="card-title">{name}</div>
@@ -826,10 +826,10 @@ class ExportService:
         if report.recent_news:
             sections.append('<div class="subsection-title">Recent News</div>')
             for news in report.recent_news[:5]:  # Limit to 5 items
-                title = html.escape(news.get('title', ''))
-                summary = html.escape(news.get('summary', ''))
-                date = html.escape(news.get('date', ''))
-                source = html.escape(news.get('source', ''))
+                title = html.escape(news.get('title') or '')
+                summary = html.escape(news.get('summary') or '')
+                date = html.escape(news.get('date') or '')
+                source = html.escape(news.get('source') or '')
                 sections.append(f'''
                 <div class="card">
                     <div class="card-title">{title}</div>
@@ -1069,9 +1069,9 @@ class ExportService:
                 </tr>
             ''')
             for corr in intel.gap_correlations:
-                gap_type = html.escape(corr.get('gap_type', '').title())
-                desc = html.escape(corr.get('description', ''))
-                evidence = html.escape(corr.get('evidence', ''))
+                gap_type = html.escape((corr.get('gap_type') or '').title())
+                desc = html.escape(corr.get('description') or '')
+                evidence = html.escape(corr.get('evidence') or '')
                 confidence = f"{round(corr.get('confidence', 0) * 100)}%"
                 sections.append(f'''
                 <tr>
@@ -1103,8 +1103,8 @@ class ExportService:
         sections.append(f'<p>Research grounded with {len(sources)} web source{"s" if len(sources) != 1 else ""}:</p>')
 
         for i, source in enumerate(sources, 1):
-            title = html.escape(source.get('title', 'Untitled Source'))
-            uri = source.get('uri', '')
+            title = html.escape(source.get('title') or 'Untitled Source')
+            uri = source.get('uri') or ''
             uri_display = html.escape(uri) if uri else ''
 
             sections.append(f'''
