@@ -1,8 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ResearchJob, ResearchReport, CompetitorCaseStudy, GapAnalysis, InternalOpsIntel, GapCorrelation, WebSource } from '@/types';
 import { api } from '@/lib/api';
+
+function MarkdownText({ content, className = '' }: { content: string; className?: string }) {
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} className={`prose prose-sm max-w-none ${className}`}>
+      {content}
+    </ReactMarkdown>
+  );
+}
 
 interface ResearchResultsProps {
   job: ResearchJob;
@@ -267,7 +277,7 @@ function ReportTab({ report }: { report: ResearchReport }) {
           )}
         </div>
         {report.ai_footprint && (
-          <p className="text-gray-900">{report.ai_footprint}</p>
+          <MarkdownText content={report.ai_footprint} className="text-gray-900" />
         )}
       </Section>
 
@@ -278,19 +288,19 @@ function ReportTab({ report }: { report: ResearchReport }) {
             {report.cloud_footprint && (
               <div>
                 <div className="text-sm font-medium text-gray-700 mb-1">Cloud Footprint</div>
-                <p className="text-gray-900">{report.cloud_footprint}</p>
+                <MarkdownText content={report.cloud_footprint} className="text-gray-900" />
               </div>
             )}
             {report.security_posture && (
               <div>
                 <div className="text-sm font-medium text-gray-700 mb-1">Security Posture</div>
-                <p className="text-gray-900">{report.security_posture}</p>
+                <MarkdownText content={report.security_posture} className="text-gray-900" />
               </div>
             )}
             {report.data_maturity && (
               <div>
                 <div className="text-sm font-medium text-gray-700 mb-1">Data Maturity</div>
-                <p className="text-gray-900">{report.data_maturity}</p>
+                <MarkdownText content={report.data_maturity} className="text-gray-900" />
               </div>
             )}
           </div>
@@ -452,7 +462,7 @@ function GapsTab({ gaps }: { gaps: GapAnalysis }) {
           <div className="space-y-2">
             {gaps.priority_areas.map((area, i) => (
               <div key={i} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-gray-900">
-                <span className="font-medium">#{i + 1}</span> {area}
+                <span className="font-medium">#{i + 1}</span> <MarkdownText content={area} />
               </div>
             ))}
           </div>
@@ -478,7 +488,7 @@ function GapsTab({ gaps }: { gaps: GapAnalysis }) {
           <ul className="space-y-2">
             {gaps.recommendations.map((rec, i) => (
               <li key={i} className="p-3 bg-green-50 rounded-lg text-gray-900">
-                {rec}
+                <MarkdownText content={rec} />
               </li>
             ))}
           </ul>
@@ -488,7 +498,7 @@ function GapsTab({ gaps }: { gaps: GapAnalysis }) {
       {/* Analysis Notes */}
       {gaps.analysis_notes && (
         <Section title="Analysis Notes">
-          <p className="text-gray-800 text-sm">{gaps.analysis_notes}</p>
+          <MarkdownText content={gaps.analysis_notes} className="text-gray-800 text-sm" />
         </Section>
       )}
     </div>
@@ -647,7 +657,7 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
             {/* Hiring Insights */}
             {intel.job_postings.insights && (
               <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-gray-900 text-sm">{intel.job_postings.insights}</p>
+                <MarkdownText content={intel.job_postings.insights} className="text-gray-900 text-sm" />
               </div>
             )}
           </div>
@@ -808,7 +818,7 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
           <div className="space-y-2">
             {intel.key_insights.map((insight, i) => (
               <div key={i} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-gray-900">{insight}</p>
+                <MarkdownText content={insight} className="text-gray-900" />
               </div>
             ))}
           </div>
@@ -835,7 +845,7 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
 
       {/* Analysis Notes */}
       {intel.analysis_notes && (
-        <p className="text-xs text-gray-500 italic">{intel.analysis_notes}</p>
+        <MarkdownText content={intel.analysis_notes} className="text-xs text-gray-500 italic" />
       )}
     </div>
   );
@@ -939,7 +949,7 @@ function GapList({ title, items, color }: { title: string; items: string[]; colo
       <ul className="space-y-2">
         {items.map((item, i) => (
           <li key={i} className={`p-2 text-sm rounded border ${colorClasses[color]}`}>
-            {item}
+            <MarkdownText content={item} />
           </li>
         ))}
       </ul>
@@ -1072,11 +1082,11 @@ function GapCorrelationCard({ correlation }: { correlation: GapCorrelation }) {
         </div>
       </div>
       <div className="text-sm text-gray-700 mb-2">
-        <span className="font-medium">Evidence:</span> {correlation.evidence}
+        <span className="font-medium">Evidence:</span> <MarkdownText content={correlation.evidence} className="inline" />
       </div>
       {correlation.sales_implication && (
         <div className="text-sm text-blue-700 bg-blue-50 p-2 rounded">
-          <span className="font-medium">Sales Implication:</span> {correlation.sales_implication}
+          <span className="font-medium">Sales Implication:</span> <MarkdownText content={correlation.sales_implication} className="inline" />
         </div>
       )}
     </div>

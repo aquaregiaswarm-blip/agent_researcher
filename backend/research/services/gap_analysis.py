@@ -1,5 +1,6 @@
 """Gap analysis service for sales history (AGE-13)."""
 import json
+import re
 import logging
 from typing import List
 from dataclasses import dataclass, field
@@ -166,10 +167,11 @@ IMPORTANT:
             # Parse JSON response
             response_text = response.strip()
 
-            # Handle potential markdown code blocks
-            if response_text.startswith('```'):
-                lines = response_text.split('\n')
-                response_text = '\n'.join(lines[1:-1])
+            # Strip markdown code fences robustly (handles ```json, trailing newlines, etc.)
+            if '```' in response_text:
+                match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', response_text, re.DOTALL)
+                if match:
+                    response_text = match.group(1).strip()
 
             data = json.loads(response_text)
 

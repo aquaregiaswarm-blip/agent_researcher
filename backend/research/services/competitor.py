@@ -86,12 +86,16 @@ IMPORTANT:
             company_overview=company_overview or "Not available",
         )
 
-        result = conduct_grounded_query(
-            self.gemini_client.client,
-            prompt,
-            'competitor_case_studies',
-            self.gemini_client.MODEL_FLASH,
-        )
+        try:
+            result = conduct_grounded_query(
+                self.gemini_client.client,
+                prompt,
+                'competitor_case_studies',
+                self.gemini_client.MODEL_FLASH,
+            )
+        except Exception as e:
+            logger.exception("Error calling grounded query for competitor search")
+            return [], None
 
         grounding_metadata = result.grounding_metadata
 
