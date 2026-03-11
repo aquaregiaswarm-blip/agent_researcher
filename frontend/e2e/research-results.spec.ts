@@ -16,11 +16,13 @@ import { test, expect, Page } from '@playwright/test';
 // ---------------------------------------------------------------------------
 
 async function getCompletedJobId(page: Page): Promise<string | null> {
-  const resp = await page.request.get('http://localhost:8000/api/research/?status=completed&limit=1');
+  // Try the jobs list endpoint first
+  const resp = await page.request.get('http://localhost:8000/api/research/jobs/');
   if (!resp.ok()) return null;
   const data = await resp.json();
-  const results = data.results ?? data;
-  return results[0]?.id ?? null;
+  const results: Array<{ id: string; status: string }> = data.results ?? data;
+  const completed = results.find(j => j.status === 'completed');
+  return completed?.id ?? null;
 }
 
 async function navigateToResult(page: Page, jobId: string) {
