@@ -22,7 +22,7 @@ class GapAnalysisData:
 class GapAnalysisService:
     """Service to analyze gaps from sales history."""
 
-    GAP_ANALYSIS_PROMPT = '''You are a sales strategy analyst. Analyze the sales history and company information to identify technology, capability, and process gaps.
+    GAP_ANALYSIS_PROMPT = '''You are a sales strategy analyst. Analyze the company information and sales history to identify technology, capability, and process gaps.
 
 Target Company: {client_name}
 Industry Vertical: {vertical}
@@ -30,6 +30,25 @@ Company Overview: {company_overview}
 
 Sales History:
 {sales_history}
+
+Existing Pain Points:
+{pain_points}
+
+Identified Opportunities:
+{opportunities}
+
+Strategic Goals:
+{strategic_goals}
+
+Key Initiatives:
+{key_initiatives}
+
+Digital Maturity: {digital_maturity}
+AI Footprint: {ai_footprint}
+AI Adoption Stage: {ai_adoption_stage}
+
+Competitor Case Studies (what similar companies have done):
+{competitor_case_studies}
 
 Analyze this information to identify:
 1. Technology gaps - missing or outdated technologies
@@ -83,23 +102,62 @@ IMPORTANT:
         vertical: str,
         company_overview: str = "",
         sales_history: str = "",
+        pain_points: list = None,
+        opportunities: list = None,
+        strategic_goals: list = None,
+        key_initiatives: list = None,
+        digital_maturity: str = "",
+        ai_footprint: str = "",
+        ai_adoption_stage: str = "",
+        competitor_case_studies: list = None,
     ) -> GapAnalysisData:
-        """Analyze gaps from sales history and company information.
+        """Analyze gaps from sales history and enriched company context.
 
         Args:
             client_name: Name of the target company
             vertical: Industry vertical
             company_overview: Description of the company
             sales_history: Historical sales interaction data
+            pain_points: Known pain points from research report
+            opportunities: Known opportunities from research report
+            strategic_goals: Strategic goals from research report
+            key_initiatives: Key initiatives from research report
+            digital_maturity: Digital maturity level
+            ai_footprint: AI usage description
+            ai_adoption_stage: AI adoption stage
+            competitor_case_studies: Competitor case studies for context
 
         Returns:
             GapAnalysisData object with identified gaps
         """
+        def fmt_list(items):
+            return "\n".join(f"- {i}" for i in (items or [])) or "None identified"
+
+        def fmt_case_studies(studies):
+            if not studies:
+                return "None available"
+            summaries = []
+            for cs in (studies or []):
+                if isinstance(cs, dict):
+                    name = cs.get('competitor_name', 'Unknown')
+                    title = cs.get('case_study_title', '')
+                    summary = cs.get('summary', '')
+                    summaries.append(f"- {name}: {title} — {summary}")
+            return "\n".join(summaries) if summaries else "None available"
+
         prompt = self.GAP_ANALYSIS_PROMPT.format(
             client_name=client_name,
             vertical=vertical,
             company_overview=company_overview or "Not available",
             sales_history=sales_history or "No sales history provided",
+            pain_points=fmt_list(pain_points),
+            opportunities=fmt_list(opportunities),
+            strategic_goals=fmt_list(strategic_goals),
+            key_initiatives=fmt_list(key_initiatives),
+            digital_maturity=digital_maturity or "Unknown",
+            ai_footprint=ai_footprint or "Unknown",
+            ai_adoption_stage=ai_adoption_stage or "Unknown",
+            competitor_case_studies=fmt_case_studies(competitor_case_studies),
         )
 
         try:

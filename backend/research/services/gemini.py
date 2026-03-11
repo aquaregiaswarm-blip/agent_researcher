@@ -91,6 +91,13 @@ class ResearchReportData:
     # Talking points
     talking_points: list = field(default_factory=list)
 
+    # Cloud, security and data intelligence
+    cloud_footprint: str = ""
+    security_posture: str = ""
+    data_maturity: str = ""
+    financial_signals: list = field(default_factory=list)
+    tech_partnerships: list = field(default_factory=list)
+
     def to_dict(self) -> dict:
         """Convert to dictionary for model storage."""
         return asdict(self)
@@ -99,7 +106,11 @@ class ResearchReportData:
 class GeminiClient:
     """Client for Gemini API with structured output parsing."""
 
-    # Query prompts for parallel grounded queries
+    MODEL_PRO = 'gemini-2.5-pro-preview-06-05'
+    MODEL_FLASH = 'gemini-2.5-flash'
+
+    # Phase 1 — grounded query prompts
+
     PROFILE_QUERY_PROMPT = '''Research basic profile for {client_name}: company overview, headquarters, employee count, revenue, founding year, website. Provide comprehensive factual information.'''
 
     NEWS_QUERY_PROMPT = '''Find recent news and developments about {client_name}. Include headlines, dates, sources, and brief summaries of each news item. Focus on the most recent and significant news.'''
@@ -108,10 +119,24 @@ class GeminiClient:
 
     TECHNOLOGY_QUERY_PROMPT = '''Research {client_name}'s technology stack, digital maturity, AI adoption, and key technical initiatives. Include information about their digital transformation efforts and any AI/ML implementations.'''
 
-    SYNTHESIS_PROMPT = '''You are a deep research assistant. Synthesize the following research into a comprehensive company profile:
+    CLOUD_INFRASTRUCTURE_QUERY_PROMPT = '''Research {client_name}'s cloud and infrastructure strategy. Find: cloud provider partnerships (AWS, Azure, GCP), migration announcements, data centre consolidation or expansion plans, hybrid/multi-cloud strategy, cloud-native vs legacy infrastructure signals, and any infrastructure vendor partnerships.'''
 
-## Company Profile Data:
+    CYBERSECURITY_COMPLIANCE_QUERY_PROMPT = '''Research {client_name}'s cybersecurity posture and compliance profile. Find: any publicly disclosed data breaches or security incidents, CISO hiring activity or leadership changes, compliance certifications (SOC2, ISO27001, HIPAA, FedRAMP, PCI-DSS), cybersecurity vendor partnerships, security investment announcements, and regulatory compliance pressures in their industry.'''
+
+    DATA_ANALYTICS_QUERY_PROMPT = '''Research {client_name}'s data and analytics maturity. Find: data warehouse or data lake platforms in use (Snowflake, Databricks, BigQuery, Redshift), BI tooling (Tableau, Power BI, Looker), data governance initiatives, chief data officer or data leadership hiring, analytics vendor partnerships, and any public mentions of data strategy or data-driven transformation.'''
+
+    FINANCIAL_FILINGS_QUERY_PROMPT = '''Research {client_name}'s financial filings and investor communications for technology signals. Find: annual report or 10-K technology investment themes, risk factors related to technology or cybersecurity, earnings call mentions of AI, digital transformation or data initiatives, capital expenditure allocation signals, and analyst commentary on their technology strategy.'''
+
+    SYNTHESIS_PROMPT = '''You are a deep research assistant. Synthesize the following research into a comprehensive company profile for a sales team preparing to engage with {client_name}.
+
+## Sales Context (prioritise these themes in your analysis):
+{sales_history}
+
+## Company Profile:
 {profile}
+
+## Financial & Investor Signals:
+{financial_filings}
 
 ## Recent News:
 {news}
@@ -122,15 +147,29 @@ class GeminiClient:
 ## Technology Assessment:
 {technology}
 
+## Cloud & Infrastructure:
+{cloud_infrastructure}
+
+## Data & Analytics:
+{data_analytics}
+
+## Cybersecurity & Compliance:
+{cybersecurity_compliance}
+
 Create a cohesive analysis that covers:
 1. Company overview and key facts
 2. Leadership and decision-makers
 3. Recent developments and news
 4. Digital maturity and AI adoption status
-5. Pain points they may face
-6. Opportunities for AI/technology solutions
-7. Strategic goals and initiatives
-8. Recommended talking points for sales conversations
+5. Cloud infrastructure footprint
+6. Security posture and compliance
+7. Data and analytics maturity
+8. Financial signals and technology investment themes
+9. Pain points they may face
+10. Opportunities for AI/technology solutions
+11. Strategic goals and initiatives
+12. Technology partnerships and vendor relationships
+13. Recommended talking points for sales conversations (informed by the sales context above)
 
 Be comprehensive and actionable. Include specific details and cite facts from the research.'''
 
@@ -171,76 +210,15 @@ Required JSON Structure:
     "ai_adoption_stage": "exploring|experimenting|implementing|scaling|optimizing",
     "strategic_goals": ["Goal 1", "Goal 2"],
     "key_initiatives": ["Initiative 1", "Initiative 2"],
-    "talking_points": ["Talking point 1", "Talking point 2"]
+    "talking_points": ["Talking point 1", "Talking point 2"],
+    "cloud_footprint": "Description of cloud provider footprint (AWS/Azure/GCP partnerships, data centre strategy, hybrid or cloud-native signals)",
+    "security_posture": "Description of security posture, compliance certifications held, recent incidents or investments, CISO signals",
+    "data_maturity": "Description of data maturity level, BI tooling in use, data governance initiatives, analytics capabilities",
+    "financial_signals": ["Technology capex signal from annual report", "AI mention from earnings call"],
+    "tech_partnerships": ["AWS Premier Partner", "Snowflake Select Partner"]
 }}
 
 IMPORTANT: Respond ONLY with valid JSON, no additional text or markdown formatting.'''
-
-    DEEP_RESEARCH_PROMPT = '''You are a deep research assistant conducting comprehensive prospect research.
-
-Given the following client information:
-- Client Name: {client_name}
-- Past Sales History: {sales_history}
-
-Conduct thorough research and provide a comprehensive analysis. Your response MUST be valid JSON matching this exact structure:
-
-{{
-    "company_overview": "Comprehensive overview of the company, its business model, products/services, market position",
-    "founded_year": 2000,
-    "headquarters": "City, State/Country",
-    "employee_count": "1,000-5,000",
-    "annual_revenue": "$500M - $1B",
-    "website": "https://example.com",
-    "recent_news": [
-        {{
-            "title": "News headline",
-            "summary": "Brief summary of the news",
-            "date": "2024-01-15",
-            "source": "News source name",
-            "url": "https://source.com/article"
-        }}
-    ],
-    "decision_makers": [
-        {{
-            "name": "Full Name",
-            "title": "Job Title",
-            "background": "Brief professional background",
-            "linkedin_url": "https://linkedin.com/in/..."
-        }}
-    ],
-    "pain_points": [
-        "Pain point 1: description of business challenge or issue",
-        "Pain point 2: another challenge they face"
-    ],
-    "opportunities": [
-        "Opportunity 1: area where AI/technology could help",
-        "Opportunity 2: another potential value-add"
-    ],
-    "digital_maturity": "nascent|developing|maturing|advanced|leading",
-    "ai_footprint": "Description of their current AI/ML usage and capabilities",
-    "ai_adoption_stage": "exploring|experimenting|implementing|scaling|optimizing",
-    "strategic_goals": [
-        "Strategic goal 1",
-        "Strategic goal 2"
-    ],
-    "key_initiatives": [
-        "Current initiative or transformation project 1",
-        "Initiative 2"
-    ],
-    "talking_points": [
-        "Specific talking point for sales conversation 1",
-        "Talking point 2 with personalized angle"
-    ]
-}}
-
-IMPORTANT:
-- Respond ONLY with valid JSON, no additional text
-- Include 3-5 items for each list field where possible
-- Use "unknown" for fields you cannot determine
-- For digital_maturity use one of: nascent, developing, maturing, advanced, leading
-- For ai_adoption_stage use one of: exploring, experimenting, implementing, scaling, optimizing
-- Be specific and actionable in pain points, opportunities, and talking points
-'''
 
     VERTICAL_CLASSIFICATION_PROMPT = '''Based on the following company information, classify the company into one of these industry verticals:
 
@@ -326,46 +304,24 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
 
     def _conduct_grounded_query(self, prompt: str, query_type: str) -> GroundedQueryResult:
         """Make a single grounded query with Google Search enabled."""
-        try:
-            from google.genai import types
-
-            response = self.client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                ),
-            )
-
-            grounding_metadata = self._extract_grounding_metadata(response)
-
-            return GroundedQueryResult(
-                query_type=query_type,
-                text=response.text,
-                grounding_metadata=grounding_metadata,
-                success=True,
-            )
-
-        except Exception as e:
-            logger.error(f"Grounded query '{query_type}' failed: {e}")
-            return GroundedQueryResult(
-                query_type=query_type,
-                text="",
-                success=False,
-                error=str(e),
-            )
+        from .grounding import conduct_grounded_query
+        return conduct_grounded_query(self.client, prompt, query_type, self.MODEL_FLASH)
 
     def _run_parallel_grounded_queries(self, client_name: str) -> dict:
-        """Run multiple grounded queries in parallel using ThreadPoolExecutor."""
+        """Run 8 grounded queries in parallel using ThreadPoolExecutor."""
         queries = {
             'profile': self.PROFILE_QUERY_PROMPT.format(client_name=client_name),
             'news': self.NEWS_QUERY_PROMPT.format(client_name=client_name),
             'leadership': self.LEADERSHIP_QUERY_PROMPT.format(client_name=client_name),
             'technology': self.TECHNOLOGY_QUERY_PROMPT.format(client_name=client_name),
+            'cloud_infrastructure': self.CLOUD_INFRASTRUCTURE_QUERY_PROMPT.format(client_name=client_name),
+            'cybersecurity_compliance': self.CYBERSECURITY_COMPLIANCE_QUERY_PROMPT.format(client_name=client_name),
+            'data_analytics': self.DATA_ANALYTICS_QUERY_PROMPT.format(client_name=client_name),
+            'financial_filings': self.FINANCIAL_FILINGS_QUERY_PROMPT.format(client_name=client_name),
         }
 
         results = {}
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=8) as executor:
             future_to_type = {
                 executor.submit(self._conduct_grounded_query, prompt, query_type): query_type
                 for query_type, prompt in queries.items()
@@ -388,31 +344,8 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
 
     def _merge_grounding_metadata(self, results: dict) -> Optional[GroundingMetadata]:
         """Merge grounding metadata from multiple queries, deduplicating by URI."""
-        all_sources = []
-        all_queries = []
-        seen_uris = set()
-        seen_queries = set()
-
-        for result in results.values():
-            if result.grounding_metadata:
-                for source in result.grounding_metadata.web_sources:
-                    uri = source.uri if isinstance(source, WebSource) else source.get('uri', '')
-                    if uri and uri not in seen_uris:
-                        seen_uris.add(uri)
-                        all_sources.append(source)
-
-                for query in result.grounding_metadata.search_queries:
-                    if query and query not in seen_queries:
-                        seen_queries.add(query)
-                        all_queries.append(query)
-
-        if not all_sources and not all_queries:
-            return None
-
-        return GroundingMetadata(
-            web_sources=all_sources,
-            search_queries=all_queries,
-        )
+        from .grounding import merge_grounding_metadata
+        return merge_grounding_metadata(results)
 
     def _apply_fallback_defaults(self, report_data: ResearchReportData, query_results: dict) -> ResearchReportData:
         """Apply fallback defaults for failed queries."""
@@ -444,49 +377,70 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
     ) -> tuple[ResearchReportData, Optional[GroundingMetadata]]:
         """Conduct deep research using 3-phase approach with Google Search grounding.
 
-        Phase 1: Run 4 parallel grounded queries (profile, news, leadership, technology)
-        Phase 2: Synthesize results into comprehensive research
-        Phase 3: Format into structured JSON
+        Phase 1: Run 8 parallel grounded queries
+        Phase 2: Synthesize results (MODEL_PRO with flash fallback)
+        Phase 3: Format into structured JSON (MODEL_FLASH)
 
         Returns:
             tuple: (ResearchReportData, Optional[GroundingMetadata])
         """
         try:
             # Phase 1: Run parallel grounded queries
-            logger.info(f"Phase 1: Running parallel grounded queries for '{client_name}'")
+            logger.info(f"Phase 1: Running 8 parallel grounded queries for '{client_name}'")
             query_results = self._run_parallel_grounded_queries(client_name)
 
             # Merge grounding metadata from all queries
             merged_metadata = self._merge_grounding_metadata(query_results)
 
             # Build synthesis input from results
-            profile_text = query_results.get('profile', GroundedQueryResult(query_type='profile')).text or "No profile data available."
-            news_text = query_results.get('news', GroundedQueryResult(query_type='news')).text or "No news data available."
-            leadership_text = query_results.get('leadership', GroundedQueryResult(query_type='leadership')).text or "No leadership data available."
-            technology_text = query_results.get('technology', GroundedQueryResult(query_type='technology')).text or "No technology data available."
+            def _text(key: str, default: str) -> str:
+                r = query_results.get(key, GroundedQueryResult(query_type=key))
+                return r.text or default
 
-            # Phase 2: Synthesis
+            profile_text = _text('profile', 'No profile data available.')
+            news_text = _text('news', 'No news data available.')
+            leadership_text = _text('leadership', 'No leadership data available.')
+            technology_text = _text('technology', 'No technology data available.')
+            cloud_infra_text = _text('cloud_infrastructure', 'No cloud infrastructure data available.')
+            cybersec_text = _text('cybersecurity_compliance', 'No cybersecurity data available.')
+            data_analytics_text = _text('data_analytics', 'No data analytics data available.')
+            financial_text = _text('financial_filings', 'No financial filings data available.')
+
+            # Phase 2: Synthesis with MODEL_PRO, flash fallback
             logger.info(f"Phase 2: Synthesizing research for '{client_name}'")
             synthesis_prompt = self.SYNTHESIS_PROMPT.format(
+                client_name=client_name,
+                sales_history=sales_history or "No prior sales history provided.",
                 profile=profile_text,
                 news=news_text,
                 leadership=leadership_text,
                 technology=technology_text,
+                cloud_infrastructure=cloud_infra_text,
+                cybersecurity_compliance=cybersec_text,
+                data_analytics=data_analytics_text,
+                financial_filings=financial_text,
             )
 
-            synthesis_response = self.client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=synthesis_prompt,
-            )
+            try:
+                synthesis_response = self.client.models.generate_content(
+                    model=self.MODEL_PRO,
+                    contents=synthesis_prompt,
+                )
+            except Exception:
+                logger.warning("Pro model unavailable, falling back to flash for synthesis")
+                synthesis_response = self.client.models.generate_content(
+                    model=self.MODEL_FLASH,
+                    contents=synthesis_prompt,
+                )
 
             synthesis_text = synthesis_response.text
 
-            # Phase 3: JSON formatting
+            # Phase 3: JSON formatting — stays on MODEL_FLASH
             logger.info(f"Phase 3: Formatting research for '{client_name}'")
             format_prompt = self.JSON_FORMAT_PROMPT.format(research_text=synthesis_text)
 
             format_response = self.client.models.generate_content(
-                model='gemini-2.0-flash',
+                model=self.MODEL_FLASH,
                 contents=format_prompt,
             )
 
@@ -500,7 +454,10 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
                 response_text = '\n'.join(lines[1:-1])
 
             data = json.loads(response_text)
-            report_data = ResearchReportData(**data)
+            # Filter to known fields to avoid unexpected keyword arguments
+            known_fields = {f.name for f in ResearchReportData.__dataclass_fields__.values()}
+            filtered_data = {k: v for k, v in data.items() if k in known_fields}
+            report_data = ResearchReportData(**filtered_data)
 
             # Apply fallback defaults for any failed queries
             report_data = self._apply_fallback_defaults(report_data, query_results)
@@ -532,7 +489,7 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.0-flash',
+                model=self.MODEL_FLASH,
                 contents=prompt,
             )
 
@@ -556,11 +513,12 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
             logger.exception("Error during vertical classification")
             return 'other'
 
-    def generate_text(self, prompt: str) -> str:
+    def generate_text(self, prompt: str, model: str = None) -> str:
         """Generate text using Gemini API."""
+        model = model or self.MODEL_FLASH
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.0-flash',
+                model=model,
                 contents=prompt,
             )
             return response.text

@@ -120,7 +120,7 @@ def search_competitors(state: ResearchState) -> ResearchState:
         competitor_service = CompetitorSearchService(gemini_client)
 
         report = state.get('research_report', {})
-        case_studies = competitor_service.search_competitor_case_studies(
+        case_studies, comp_metadata = competitor_service.search_competitor_case_studies(
             client_name=state.get('client_name', ''),
             vertical=state.get('vertical', 'other'),
             company_overview=report.get('company_overview', ''),
@@ -141,10 +141,19 @@ def search_competitors(state: ResearchState) -> ResearchState:
             for cs in case_studies
         ]
 
+        # Accumulate grounding sources
+        existing_sources = state.get('web_sources', [])
+        if comp_metadata:
+            comp_sources = comp_metadata.to_dict().get('web_sources', [])
+            merged_sources = existing_sources + [s for s in comp_sources if s not in existing_sources]
+        else:
+            merged_sources = existing_sources
+
         return {
             **state,
             'status': 'gap_analysis',
             'competitor_case_studies': case_studies_list,
+            'web_sources': merged_sources,
         }
 
     except Exception as e:
@@ -175,6 +184,14 @@ def analyze_gaps(state: ResearchState) -> ResearchState:
             vertical=state.get('vertical', 'other'),
             company_overview=report.get('company_overview', ''),
             sales_history=state.get('sales_history', ''),
+            pain_points=report.get('pain_points', []),
+            opportunities=report.get('opportunities', []),
+            strategic_goals=report.get('strategic_goals', []),
+            key_initiatives=report.get('key_initiatives', []),
+            digital_maturity=report.get('digital_maturity', ''),
+            ai_footprint=report.get('ai_footprint', ''),
+            ai_adoption_stage=report.get('ai_adoption_stage', ''),
+            competitor_case_studies=state.get('competitor_case_studies', []),
         )
 
         # Convert to dict for state storage
@@ -221,7 +238,7 @@ def research_internal_ops(state: ResearchState) -> ResearchState:
         internal_ops_service = InternalOpsService(gemini_client)
 
         report = state.get('research_report', {})
-        ops_data = internal_ops_service.research_internal_ops(
+        ops_data, ops_metadata = internal_ops_service.research_internal_ops(
             client_name=state.get('client_name', ''),
             vertical=state.get('vertical', ''),
             website=report.get('website', ''),
@@ -231,9 +248,18 @@ def research_internal_ops(state: ResearchState) -> ResearchState:
         # Convert to dict for state storage
         ops_dict = ops_data.to_dict()
 
+        # Accumulate grounding sources
+        existing_sources = state.get('web_sources', [])
+        if ops_metadata:
+            ops_sources = ops_metadata.to_dict().get('web_sources', [])
+            merged_sources = existing_sources + [s for s in ops_sources if s not in existing_sources]
+        else:
+            merged_sources = existing_sources
+
         return {
             **state,
             'internal_ops': ops_dict,
+            'web_sources': merged_sources,
         }
 
     except Exception as e:
@@ -345,6 +371,11 @@ def finalize_result(state: ResearchState) -> ResearchState:
                     'strategic_goals': report_data.get('strategic_goals', []),
                     'key_initiatives': report_data.get('key_initiatives', []),
                     'talking_points': report_data.get('talking_points', []),
+                    'cloud_footprint': report_data.get('cloud_footprint', ''),
+                    'security_posture': report_data.get('security_posture', ''),
+                    'data_maturity': report_data.get('data_maturity', ''),
+                    'financial_signals': report_data.get('financial_signals', []),
+                    'tech_partnerships': report_data.get('tech_partnerships', []),
                     'web_sources': state.get('web_sources', []),
                 }
             )
@@ -493,5 +524,25 @@ def _format_research_result(report: dict) -> str:
     # Talking points
     if report.get('talking_points'):
         sections.append(f"## Recommended Talking Points\n" + "\n".join(f"- {t}" for t in report['talking_points']))
+
+    # Cloud & Infrastructure
+    if report.get('cloud_footprint'):
+        sections.append(f"## Cloud & Infrastructure\n{report['cloud_footprint']}")
+
+    # Security Posture
+    if report.get('security_posture'):
+        sections.append(f"## Security Posture\n{report['security_posture']}")
+
+    # Data Maturity
+    if report.get('data_maturity'):
+        sections.append(f"## Data Maturity\n{report['data_maturity']}")
+
+    # Financial Signals
+    if report.get('financial_signals'):
+        sections.append(f"## Financial Signals\n" + "\n".join(f"- {s}" for s in report['financial_signals']))
+
+    # Technology Partnerships
+    if report.get('tech_partnerships'):
+        sections.append(f"## Technology Partnerships\n" + "\n".join(f"- {p}" for p in report['tech_partnerships']))
 
     return "\n\n".join(sections)

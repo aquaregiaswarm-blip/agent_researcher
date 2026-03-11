@@ -95,6 +95,13 @@ class ResearchReport(models.Model):
     # Talking points for sales
     talking_points = models.JSONField(default=list, blank=True)
 
+    # Cloud, security and data intelligence (from expanded grounded research)
+    cloud_footprint = models.TextField(blank=True)
+    security_posture = models.TextField(blank=True)
+    data_maturity = models.TextField(blank=True)  # freeform prose — not an enum
+    financial_signals = models.JSONField(default=list, blank=True)
+    tech_partnerships = models.JSONField(default=list, blank=True)
+
     # Web sources from Google Search grounding
     web_sources = models.JSONField(default=list, blank=True)
 

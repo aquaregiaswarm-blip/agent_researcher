@@ -67,8 +67,8 @@ IMPORTANT:
         client_name: str,
         vertical: str,
         company_overview: str = "",
-    ) -> List[CompetitorCaseStudyData]:
-        """Search for competitor AI case studies.
+    ) -> tuple:
+        """Search for competitor AI case studies using a grounded query.
 
         Args:
             client_name: Name of the target company
@@ -76,21 +76,32 @@ IMPORTANT:
             company_overview: Description of the target company
 
         Returns:
-            List of competitor case study data objects
+            tuple: (List[CompetitorCaseStudyData], Optional[GroundingMetadata])
         """
+        from .grounding import conduct_grounded_query
+
         prompt = self.COMPETITOR_SEARCH_PROMPT.format(
             client_name=client_name,
             vertical=vertical,
             company_overview=company_overview or "Not available",
         )
 
+        result = conduct_grounded_query(
+            self.gemini_client.client,
+            prompt,
+            'competitor_case_studies',
+            self.gemini_client.MODEL_FLASH,
+        )
+
+        grounding_metadata = result.grounding_metadata
+
+        if not result.success or not result.text:
+            logger.error(f"Competitor search failed: {result.error}")
+            return [], grounding_metadata
+
         try:
-            response = self.gemini_client.generate_text(prompt)
+            response_text = result.text.strip()
 
-            # Parse JSON response
-            response_text = response.strip()
-
-            # Handle potential markdown code blocks
             if response_text.startswith('```'):
                 lines = response_text.split('\n')
                 response_text = '\n'.join(lines[1:-1])
@@ -110,14 +121,14 @@ IMPORTANT:
                     relevance_score=float(cs.get('relevance_score', 0.0)),
                 ))
 
-            return case_studies
+            return case_studies, grounding_metadata
 
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse competitor search response: {e}")
-            return []
+            return [], grounding_metadata
         except Exception as e:
             logger.exception("Error during competitor search")
-            return []
+            return [], grounding_metadata
 
     def create_case_study_models(
         self,

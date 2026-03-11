@@ -6,6 +6,7 @@ and current priorities.
 """
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 
@@ -143,47 +144,61 @@ class InternalOpsData:
 class InternalOpsService:
     """Service to gather internal operations intelligence."""
 
-    INTERNAL_OPS_PROMPT = '''You are a business intelligence analyst specializing in organizational research. Your task is to analyze publicly available information about a company to gather internal operations intelligence.
+    INTERNAL_OPS_JOB_POSTINGS_PROMPT = '''Research current job postings and hiring activity for {client_name} ({vertical}).
 
-Target Company: {client_name}
-Industry Vertical: {vertical}
-Company Website: {website}
-Company Overview: {company_overview}
+Search LinkedIn Jobs, Indeed, Glassdoor Jobs, and the company's own careers page at {website}.
 
-Research and analyze the following aspects based on publicly available information:
+Find:
+- Number of open positions
+- Which departments are hiring (Engineering, Sales, Marketing, Operations, etc.)
+- Key technical skills and qualifications being sought
+- Seniority levels being hired (Entry, Mid, Senior, Executive)
+- Any urgency signals (sign-on bonuses, "immediate start", "hiring for growth")
+- What the hiring patterns tell us about company priorities
 
-1. EMPLOYEE SENTIMENT (from review sites like Glassdoor, Indeed, Blind)
-   - Overall rating and category ratings (work-life balance, compensation, culture, management)
-   - Common positive and negative themes from employee reviews
-   - Sentiment trend (improving, declining, stable)
+Provide a detailed, factual summary based on publicly available job postings.'''
 
-2. LINKEDIN PRESENCE
-   - Estimated follower count and engagement level
-   - Recent company announcements or posts
-   - Employee count trends
-   - Notable leadership changes or hires
+    INTERNAL_OPS_SENTIMENT_PROMPT = '''Research employee sentiment and workplace culture for {client_name}.
 
-3. SOCIAL MEDIA PRESENCE (Reddit, Twitter/X, Facebook discussions)
-   - What are people saying about working at or with this company?
-   - Key discussion topics and sentiment
+Search Glassdoor, Indeed company reviews, Blind, and other public employer review platforms.
 
-4. JOB POSTINGS ANALYSIS
-   - Approximate number of open positions
-   - Which departments are hiring most
-   - Key skills being sought
-   - Seniority levels (entry, mid, senior, executive)
-   - Urgency signals (signing bonuses, immediate start, etc.)
+Find:
+- Overall employee rating (if available)
+- Ratings for: work-life balance, compensation & benefits, culture & values, management
+- Percentage of employees who would recommend the company
+- Common positive themes in reviews (what employees appreciate)
+- Common negative themes (challenges or frustrations)
+- Whether sentiment is improving, declining, or stable over time
+- Notable leadership or management feedback
 
-5. NEWS SENTIMENT
-   - Recent news coverage sentiment
-   - Key topics being covered
-   - Notable headlines
+Provide a factual summary based on publicly available employee reviews.'''
 
-6. KEY INSIGHTS for sales teams
-   - What does this intelligence tell us about the company's current state?
-   - What opportunities or challenges does this reveal?
+    INTERNAL_OPS_NEWS_SOCIAL_PROMPT = '''Research recent news, press releases, and social media activity for {client_name}.
 
-Respond with valid JSON matching this exact structure:
+Search news aggregators, company press releases, Reddit, Twitter/X, and LinkedIn posts.
+
+Find:
+- Company LinkedIn follower count and recent company posts
+- Employee headcount trend (growing/shrinking/stable)
+- Notable leadership changes or key hires announced
+- Recent news coverage topics and overall sentiment
+- Relevant Reddit discussions about working at or partnering with {client_name}
+- Twitter/X mentions about the company's culture, products, or strategy
+
+Provide a factual summary based on publicly available information.'''
+
+    INTERNAL_OPS_SYNTHESIS_PROMPT = '''You are a business intelligence analyst. Based on the following research about {client_name}, create a comprehensive internal operations intelligence report for a sales team.
+
+## Job Postings & Hiring Research:
+{job_postings_research}
+
+## Employee Sentiment Research:
+{sentiment_research}
+
+## News & Social Media Research:
+{news_social_research}
+
+Synthesize this information into a structured JSON report. Respond ONLY with valid JSON:
 {{
     "employee_sentiment": {{
         "overall_rating": 3.8,
@@ -256,12 +271,14 @@ Respond with valid JSON matching this exact structure:
 }}
 
 IMPORTANT:
-- Base analysis on what would be publicly available - do not fabricate specific data
-- Be realistic with estimates based on company size and industry
+- Base analysis on information from the research provided above
 - Rate scales: 1.0-5.0 for sentiment ratings, 0-100 for percentages
 - confidence_score: 0.0-1.0 based on information availability
 - data_freshness options: "last_7_days", "last_30_days", "last_90_days", "older"
-- If information is unavailable for a section, use reasonable defaults
+- trend options: "improving", "declining", "stable"
+- engagement_level: "low", "medium", "high"
+- employee_trend: "growing", "shrinking", "stable"
+- overall_sentiment: "positive", "negative", "neutral", "mixed"
 - Respond ONLY with valid JSON
 '''
 
@@ -275,8 +292,11 @@ IMPORTANT:
         vertical: str = "",
         website: str = "",
         company_overview: str = "",
-    ) -> InternalOpsData:
-        """Research internal operations intelligence for a company.
+    ) -> tuple:
+        """Research internal operations intelligence using parallel grounded queries.
+
+        Runs 3 parallel grounded queries (job postings, sentiment, news/social),
+        then synthesises into structured InternalOpsData.
 
         Args:
             client_name: Name of the target company
@@ -285,102 +305,143 @@ IMPORTANT:
             company_overview: Brief company description
 
         Returns:
-            InternalOpsData object with gathered intelligence
+            tuple: (InternalOpsData, Optional[GroundingMetadata])
         """
-        prompt = self.INTERNAL_OPS_PROMPT.format(
+        from .grounding import conduct_grounded_query, merge_grounding_metadata
+        from .gemini import GroundedQueryResult
+
+        genai_client = self.gemini_client.client
+        model = self.gemini_client.MODEL_FLASH
+
+        queries = {
+            'job_postings': self.INTERNAL_OPS_JOB_POSTINGS_PROMPT.format(
+                client_name=client_name,
+                vertical=vertical or "Not specified",
+                website=website or "Not available",
+            ),
+            'sentiment': self.INTERNAL_OPS_SENTIMENT_PROMPT.format(
+                client_name=client_name,
+            ),
+            'news_social': self.INTERNAL_OPS_NEWS_SOCIAL_PROMPT.format(
+                client_name=client_name,
+            ),
+        }
+
+        results = {}
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_type = {
+                executor.submit(conduct_grounded_query, genai_client, prompt, query_type, model): query_type
+                for query_type, prompt in queries.items()
+            }
+            for future in as_completed(future_to_type):
+                query_type = future_to_type[future]
+                try:
+                    results[query_type] = future.result()
+                except Exception as e:
+                    logger.error(f"Internal ops query '{query_type}' raised exception: {e}")
+                    results[query_type] = GroundedQueryResult(
+                        query_type=query_type,
+                        text="",
+                        success=False,
+                        error=str(e),
+                    )
+
+        merged_metadata = merge_grounding_metadata(results)
+
+        _empty = GroundedQueryResult(query_type='')
+        job_postings_text = results.get('job_postings', _empty).text or "No data available."
+        sentiment_text = results.get('sentiment', _empty).text or "No data available."
+        news_social_text = results.get('news_social', _empty).text or "No data available."
+
+        synthesis_prompt = self.INTERNAL_OPS_SYNTHESIS_PROMPT.format(
             client_name=client_name,
-            vertical=vertical or "Not specified",
-            website=website or "Not available",
-            company_overview=company_overview or "Not available",
+            job_postings_research=job_postings_text,
+            sentiment_research=sentiment_text,
+            news_social_research=news_social_text,
         )
 
         try:
-            response = self.gemini_client.generate_text(prompt)
+            response = self.gemini_client.generate_text(synthesis_prompt)
             response_text = response.strip()
 
-            # Handle markdown code blocks
             if response_text.startswith('```'):
                 lines = response_text.split('\n')
                 response_text = '\n'.join(lines[1:-1])
 
             data = json.loads(response_text)
-
-            # Parse employee sentiment
-            es_data = data.get('employee_sentiment', {})
-            employee_sentiment = EmployeeSentiment(
-                overall_rating=float(es_data.get('overall_rating', 0.0)),
-                work_life_balance=float(es_data.get('work_life_balance', 0.0)),
-                compensation=float(es_data.get('compensation', 0.0)),
-                culture=float(es_data.get('culture', 0.0)),
-                management=float(es_data.get('management', 0.0)),
-                recommend_pct=int(es_data.get('recommend_pct', 0)),
-                positive_themes=es_data.get('positive_themes', []),
-                negative_themes=es_data.get('negative_themes', []),
-                trend=es_data.get('trend', 'stable'),
-            )
-
-            # Parse LinkedIn presence
-            li_data = data.get('linkedin_presence', {})
-            linkedin_presence = LinkedInPresence(
-                follower_count=int(li_data.get('follower_count', 0)),
-                engagement_level=li_data.get('engagement_level', 'medium'),
-                recent_posts=li_data.get('recent_posts', []),
-                employee_trend=li_data.get('employee_trend', 'stable'),
-                notable_changes=li_data.get('notable_changes', []),
-            )
-
-            # Parse social media mentions
-            social_media_mentions = []
-            for sm_data in data.get('social_media_mentions', []):
-                social_media_mentions.append(SocialMediaMention(
-                    platform=sm_data.get('platform', ''),
-                    summary=sm_data.get('summary', ''),
-                    sentiment=sm_data.get('sentiment', 'neutral'),
-                    topic=sm_data.get('topic', ''),
-                ))
-
-            # Parse job postings
-            jp_data = data.get('job_postings', {})
-            job_postings = JobPostings(
-                total_openings=int(jp_data.get('total_openings', 0)),
-                departments_hiring=jp_data.get('departments_hiring', {}),
-                skills_sought=jp_data.get('skills_sought', []),
-                seniority_distribution=jp_data.get('seniority_distribution', {}),
-                urgency_signals=jp_data.get('urgency_signals', []),
-                insights=jp_data.get('insights', ''),
-            )
-
-            # Parse news sentiment
-            ns_data = data.get('news_sentiment', {})
-            news_sentiment = NewsSentiment(
-                overall_sentiment=ns_data.get('overall_sentiment', 'neutral'),
-                coverage_volume=ns_data.get('coverage_volume', 'low'),
-                topics=ns_data.get('topics', []),
-                headlines=ns_data.get('headlines', []),
-            )
-
-            return InternalOpsData(
-                employee_sentiment=employee_sentiment,
-                linkedin_presence=linkedin_presence,
-                social_media_mentions=social_media_mentions,
-                job_postings=job_postings,
-                news_sentiment=news_sentiment,
-                key_insights=data.get('key_insights', []),
-                confidence_score=float(data.get('confidence_score', 0.0)),
-                data_freshness=data.get('data_freshness', 'unknown'),
-                analysis_notes=data.get('analysis_notes', ''),
-            )
+            ops_data = self._parse_ops_data(data)
+            return ops_data, merged_metadata
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse internal ops response: {e}")
-            return InternalOpsData(
-                analysis_notes=f"Analysis parsing failed: {str(e)}"
-            )
+            logger.error(f"Failed to parse internal ops synthesis: {e}")
+            return InternalOpsData(analysis_notes=f"Analysis parsing failed: {str(e)}"), merged_metadata
         except Exception as e:
-            logger.exception("Error during internal ops research")
-            return InternalOpsData(
-                analysis_notes=f"Research failed: {str(e)}"
+            logger.exception("Error during internal ops synthesis")
+            return InternalOpsData(analysis_notes=f"Research failed: {str(e)}"), merged_metadata
+
+    def _parse_ops_data(self, data: dict) -> InternalOpsData:
+        """Parse raw JSON dict into InternalOpsData."""
+        es_data = data.get('employee_sentiment', {})
+        employee_sentiment = EmployeeSentiment(
+            overall_rating=float(es_data.get('overall_rating', 0.0)),
+            work_life_balance=float(es_data.get('work_life_balance', 0.0)),
+            compensation=float(es_data.get('compensation', 0.0)),
+            culture=float(es_data.get('culture', 0.0)),
+            management=float(es_data.get('management', 0.0)),
+            recommend_pct=int(es_data.get('recommend_pct', 0)),
+            positive_themes=es_data.get('positive_themes', []),
+            negative_themes=es_data.get('negative_themes', []),
+            trend=es_data.get('trend', 'stable'),
+        )
+
+        li_data = data.get('linkedin_presence', {})
+        linkedin_presence = LinkedInPresence(
+            follower_count=int(li_data.get('follower_count', 0)),
+            engagement_level=li_data.get('engagement_level', 'medium'),
+            recent_posts=li_data.get('recent_posts', []),
+            employee_trend=li_data.get('employee_trend', 'stable'),
+            notable_changes=li_data.get('notable_changes', []),
+        )
+
+        social_media_mentions = [
+            SocialMediaMention(
+                platform=sm.get('platform', ''),
+                summary=sm.get('summary', ''),
+                sentiment=sm.get('sentiment', 'neutral'),
+                topic=sm.get('topic', ''),
             )
+            for sm in data.get('social_media_mentions', [])
+        ]
+
+        jp_data = data.get('job_postings', {})
+        job_postings = JobPostings(
+            total_openings=int(jp_data.get('total_openings', 0)),
+            departments_hiring=jp_data.get('departments_hiring', {}),
+            skills_sought=jp_data.get('skills_sought', []),
+            seniority_distribution=jp_data.get('seniority_distribution', {}),
+            urgency_signals=jp_data.get('urgency_signals', []),
+            insights=jp_data.get('insights', ''),
+        )
+
+        ns_data = data.get('news_sentiment', {})
+        news_sentiment = NewsSentiment(
+            overall_sentiment=ns_data.get('overall_sentiment', 'neutral'),
+            coverage_volume=ns_data.get('coverage_volume', 'low'),
+            topics=ns_data.get('topics', []),
+            headlines=ns_data.get('headlines', []),
+        )
+
+        return InternalOpsData(
+            employee_sentiment=employee_sentiment,
+            linkedin_presence=linkedin_presence,
+            social_media_mentions=social_media_mentions,
+            job_postings=job_postings,
+            news_sentiment=news_sentiment,
+            key_insights=data.get('key_insights', []),
+            confidence_score=float(data.get('confidence_score', 0.0)),
+            data_freshness=data.get('data_freshness', 'unknown'),
+            analysis_notes=data.get('analysis_notes', ''),
+        )
 
     def create_internal_ops_model(
         self,

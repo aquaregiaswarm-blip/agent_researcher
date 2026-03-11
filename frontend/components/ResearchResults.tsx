@@ -144,7 +144,7 @@ function OverviewTab({ job }: { job: ResearchJob }) {
   return (
     <div className="space-y-6">
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {report?.founded_year && (
           <StatCard label="Founded" value={String(report.founded_year)} />
         )}
@@ -156,6 +156,9 @@ function OverviewTab({ job }: { job: ResearchJob }) {
         )}
         {report?.digital_maturity && (
           <StatCard label="Digital Maturity" value={report.digital_maturity} className="capitalize" />
+        )}
+        {report?.data_maturity && (
+          <StatCard label="Data Maturity" value={report.data_maturity} />
         )}
       </div>
 
@@ -268,6 +271,32 @@ function ReportTab({ report }: { report: ResearchReport }) {
         )}
       </Section>
 
+      {/* Infrastructure & Security */}
+      {(report.cloud_footprint || report.security_posture || report.data_maturity) && (
+        <Section title="Infrastructure & Security">
+          <div className="space-y-4">
+            {report.cloud_footprint && (
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-1">Cloud Footprint</div>
+                <p className="text-gray-900">{report.cloud_footprint}</p>
+              </div>
+            )}
+            {report.security_posture && (
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-1">Security Posture</div>
+                <p className="text-gray-900">{report.security_posture}</p>
+              </div>
+            )}
+            {report.data_maturity && (
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-1">Data Maturity</div>
+                <p className="text-gray-900">{report.data_maturity}</p>
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
+
       {/* Recent News */}
       {report.recent_news && report.recent_news.length > 0 && (
         <Section title="Recent News">
@@ -310,6 +339,40 @@ function ReportTab({ report }: { report: ResearchReport }) {
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {/* Strategic Intelligence */}
+      {((report.financial_signals && report.financial_signals.length > 0) ||
+        (report.tech_partnerships && report.tech_partnerships.length > 0)) && (
+        <Section title="Strategic Intelligence">
+          <div className="space-y-4">
+            {report.financial_signals && report.financial_signals.length > 0 && (
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-2">Financial Signals</div>
+                <ul className="space-y-2">
+                  {report.financial_signals.map((signal, i) => (
+                    <li key={i} className="flex items-start">
+                      <span className="text-blue-600 mr-2">{i + 1}.</span>
+                      <span className="text-gray-900">{signal}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {report.tech_partnerships && report.tech_partnerships.length > 0 && (
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-2">Technology Partnerships</div>
+                <div className="flex flex-wrap gap-1">
+                  {report.tech_partnerships.map((partner, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded">
+                      {partner}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </Section>
       )}
     </div>

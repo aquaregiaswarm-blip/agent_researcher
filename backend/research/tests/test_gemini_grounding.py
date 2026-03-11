@@ -234,7 +234,12 @@ class TestGeminiClientDeepResearch:
             "ai_adoption_stage": "experimenting",
             "strategic_goals": ["Goal 1"],
             "key_initiatives": ["Initiative 1"],
-            "talking_points": ["Point 1"]
+            "talking_points": ["Point 1"],
+            "cloud_footprint": "AWS primary",
+            "security_posture": "SOC2 certified",
+            "data_maturity": "Snowflake + Tableau",
+            "financial_signals": ["Tech capex up 15%"],
+            "tech_partnerships": ["AWS Partner"]
         }
         '''
         mock_response.candidates = []  # No grounding metadata
@@ -288,7 +293,12 @@ class TestGeminiClientDeepResearch:
             "ai_adoption_stage": "exploring",
             "strategic_goals": [],
             "key_initiatives": [],
-            "talking_points": []
+            "talking_points": [],
+            "cloud_footprint": "",
+            "security_posture": "",
+            "data_maturity": "",
+            "financial_signals": [],
+            "tech_partnerships": []
         }
         '''
         mock_response.candidates = [mock_candidate]
@@ -341,7 +351,12 @@ class TestGeminiClientDeepResearch:
             "ai_adoption_stage": "implementing",
             "strategic_goals": [],
             "key_initiatives": [],
-            "talking_points": []
+            "talking_points": [],
+            "cloud_footprint": "",
+            "security_posture": "",
+            "data_maturity": "",
+            "financial_signals": [],
+            "tech_partnerships": []
         }
 ```'''
         mock_response.candidates = []
@@ -581,11 +596,15 @@ class TestRunParallelGroundedQueries:
             client = GeminiClient(api_key="test-key")
             results = client._run_parallel_grounded_queries("Test Company")
 
-        assert len(results) == 4
+        assert len(results) == 8
         assert 'profile' in results
         assert 'news' in results
         assert 'leadership' in results
         assert 'technology' in results
+        assert 'cloud_infrastructure' in results
+        assert 'cybersecurity_compliance' in results
+        assert 'data_analytics' in results
+        assert 'financial_filings' in results
         assert all(r.success for r in results.values())
 
     def test_run_parallel_grounded_queries_partial_failure(self):
@@ -608,10 +627,10 @@ class TestRunParallelGroundedQueries:
             client = GeminiClient(api_key="test-key")
             results = client._run_parallel_grounded_queries("Test Company")
 
-        assert len(results) == 4
-        # At least 3 should succeed
+        assert len(results) == 8
+        # At least 7 should succeed (one intentional failure)
         successful = sum(1 for r in results.values() if r.success)
-        assert successful >= 3
+        assert successful >= 7
 
 
 class TestMergeGroundingMetadata:
@@ -775,7 +794,12 @@ class TestParallelDeepResearch:
                     "ai_adoption_stage": "exploring",
                     "strategic_goals": ["Goal 1"],
                     "key_initiatives": ["Init 1"],
-                    "talking_points": ["Point 1"]
+                    "talking_points": ["Point 1"],
+                    "cloud_footprint": "AWS",
+                    "security_posture": "SOC2",
+                    "data_maturity": "Snowflake",
+                    "financial_signals": ["Signal 1"],
+                    "tech_partnerships": ["AWS"]
                 }'''
             else:
                 mock_response.text = "Research findings for the company."
@@ -789,8 +813,8 @@ class TestParallelDeepResearch:
             client = GeminiClient(api_key="test-key")
             report_data, grounding_metadata = client.conduct_deep_research("Test Company")
 
-        # Should have at least 6 calls: 4 parallel + synthesis + formatting
-        assert mock_genai_client.models.generate_content.call_count >= 6
+        # Should have at least 10 calls: 8 parallel + synthesis + formatting
+        assert mock_genai_client.models.generate_content.call_count >= 10
         assert report_data.company_overview == "Test overview"
 
     def test_conduct_deep_research_aggregates_sources(self):
@@ -801,8 +825,8 @@ class TestParallelDeepResearch:
             call_count[0] += 1
             mock_response = Mock()
 
-            # Create unique grounding for each of the first 4 calls (parallel queries)
-            if call_count[0] <= 4:
+            # Create unique grounding for each of the first 8 calls (parallel queries)
+            if call_count[0] <= 8:
                 mock_web = Mock()
                 mock_web.uri = f"https://source{call_count[0]}.com/article"
                 mock_web.title = f"Source {call_count[0]}"
@@ -821,7 +845,7 @@ class TestParallelDeepResearch:
                 mock_response.text = f"Research from query {call_count[0]}"
             else:
                 mock_response.candidates = []
-                if call_count[0] == 6:  # Formatting phase
+                if call_count[0] == 10:  # Formatting phase
                     mock_response.text = '''{
                         "company_overview": "Test",
                         "founded_year": 2020,
@@ -838,7 +862,12 @@ class TestParallelDeepResearch:
                         "ai_adoption_stage": "exploring",
                         "strategic_goals": [],
                         "key_initiatives": [],
-                        "talking_points": []
+                        "talking_points": [],
+                        "cloud_footprint": "",
+                        "security_posture": "",
+                        "data_maturity": "",
+                        "financial_signals": [],
+                        "tech_partnerships": []
                     }'''
                 else:
                     mock_response.text = "Synthesis results"
@@ -852,6 +881,6 @@ class TestParallelDeepResearch:
             client = GeminiClient(api_key="test-key")
             report_data, grounding_metadata = client.conduct_deep_research("Test Company")
 
-        # Should have 4 unique sources from the 4 parallel queries
+        # Should have 8 unique sources from the 8 parallel queries
         assert grounding_metadata is not None
-        assert len(grounding_metadata.web_sources) == 4
+        assert len(grounding_metadata.web_sources) == 8

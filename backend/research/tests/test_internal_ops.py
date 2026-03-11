@@ -29,8 +29,17 @@ def api_client():
 
 @pytest.fixture
 def mock_gemini_client():
-    """Create a mock Gemini client."""
-    return Mock()
+    """Create a mock Gemini client with required attributes for the new grounded implementation."""
+    client = Mock()
+    client.MODEL_FLASH = 'gemini-2.5-flash'
+    # client.client is the raw genai client used by conduct_grounded_query
+    raw_client = Mock()
+    mock_response = Mock()
+    mock_response.candidates = []
+    mock_response.text = ""
+    raw_client.models.generate_content.return_value = mock_response
+    client.client = raw_client
+    return client
 
 
 @pytest.fixture
@@ -185,7 +194,7 @@ class TestInternalOpsService:
     """Tests for InternalOpsService."""
 
     def test_research_internal_ops_success(self, mock_gemini_client, sample_internal_ops_response):
-        """Test successful internal ops research."""
+        """Test successful internal ops research returns (InternalOpsData, metadata) tuple."""
         mock_gemini_client.generate_text.return_value = sample_internal_ops_response
 
         service = InternalOpsService(mock_gemini_client)
@@ -196,12 +205,13 @@ class TestInternalOpsService:
             company_overview="A leading tech company"
         )
 
-        assert isinstance(result, InternalOpsData)
-        assert result.employee_sentiment.overall_rating == 3.8
-        assert result.linkedin_presence.follower_count == 50000
-        assert len(result.social_media_mentions) == 1
-        assert result.job_postings.total_openings == 45
-        assert result.confidence_score == 0.75
+        ops_data, metadata = result
+        assert isinstance(ops_data, InternalOpsData)
+        assert ops_data.employee_sentiment.overall_rating == 3.8
+        assert ops_data.linkedin_presence.follower_count == 50000
+        assert len(ops_data.social_media_mentions) == 1
+        assert ops_data.job_postings.total_openings == 45
+        assert ops_data.confidence_score == 0.75
 
     def test_research_internal_ops_handles_json_error(self, mock_gemini_client):
         """Test service handles JSON parsing errors gracefully."""
@@ -210,8 +220,9 @@ class TestInternalOpsService:
         service = InternalOpsService(mock_gemini_client)
         result = service.research_internal_ops(client_name="Test Corp")
 
-        assert isinstance(result, InternalOpsData)
-        assert "parsing failed" in result.analysis_notes.lower()
+        ops_data, metadata = result
+        assert isinstance(ops_data, InternalOpsData)
+        assert "parsing failed" in ops_data.analysis_notes.lower()
 
     def test_research_internal_ops_handles_exception(self, mock_gemini_client):
         """Test service handles exceptions gracefully."""
@@ -220,8 +231,9 @@ class TestInternalOpsService:
         service = InternalOpsService(mock_gemini_client)
         result = service.research_internal_ops(client_name="Test Corp")
 
-        assert isinstance(result, InternalOpsData)
-        assert "failed" in result.analysis_notes.lower()
+        ops_data, metadata = result
+        assert isinstance(ops_data, InternalOpsData)
+        assert "failed" in ops_data.analysis_notes.lower()
 
     def test_research_internal_ops_strips_markdown_code_blocks(self, mock_gemini_client, sample_internal_ops_response):
         """Test service handles markdown code blocks in response."""
@@ -229,9 +241,9 @@ class TestInternalOpsService:
         mock_gemini_client.generate_text.return_value = wrapped_response
 
         service = InternalOpsService(mock_gemini_client)
-        result = service.research_internal_ops(client_name="Acme Corp")
+        ops_data, metadata = service.research_internal_ops(client_name="Acme Corp")
 
-        assert result.employee_sentiment.overall_rating == 3.8
+        assert ops_data.employee_sentiment.overall_rating == 3.8
 
 
 # ============================================================================
@@ -502,12 +514,12 @@ class TestInternalOpsWorkflowNodes:
         """Test research_internal_ops node function."""
         from research.graph.nodes import research_internal_ops
 
-        # Setup mock
+        # Setup mock — new signature returns (InternalOpsData, Optional[GroundingMetadata])
         mock_ops_data = InternalOpsData(
             key_insights=["Test insight"],
             confidence_score=0.75
         )
-        mock_research.return_value = mock_ops_data
+        mock_research.return_value = (mock_ops_data, None)
 
         state = {
             'client_name': 'Test Corp',

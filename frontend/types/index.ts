@@ -40,6 +40,11 @@ export interface ResearchReport {
   strategic_goals: string[];
   key_initiatives: string[];
   talking_points: string[];
+  cloud_footprint?: string;
+  security_posture?: string;
+  data_maturity?: string;
+  financial_signals?: string[];
+  tech_partnerships?: string[];
   web_sources?: WebSource[];
   created_at: string;
   updated_at: string;
@@ -322,6 +327,7 @@ export interface IterationComparisonData {
     ai_adoption_stage: string;
     talking_points: string[];
     decision_makers: DecisionMaker[];
+    data_maturity?: string;
   };
   gap_analysis?: {
     technology_gaps: string[];
