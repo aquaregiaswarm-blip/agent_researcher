@@ -701,3 +701,75 @@ class TestInternalOpsFullWorkflow:
         # Verify no InternalOpsIntel was created
         job.refresh_from_db()
         assert not hasattr(job, 'internal_ops') or job.internal_ops is None
+
+    def test_finalize_saves_competitor_with_long_url(self):
+        """Regression: long source_url (>200 chars) must not abort gap/intel saves.
+
+        Root cause of missing tabs bug: grounded URLs from Google Search exceed
+        the old URLField(max_length=200), causing PostgreSQL DataError that
+        cascaded through a single try/except and prevented GapAnalysis and
+        InternalOpsIntel from being saved.
+        """
+        from research.models import CompetitorCaseStudy, GapAnalysis, InternalOpsIntel
+        from research.graph.nodes import finalize_result
+
+        job = ResearchJob.objects.create(client_name="Cascade Corp", status="running")
+
+        # URL that exceeds old 200-char default (simulate grounded Google Search URL)
+        long_url = "https://example.com/case-study/" + "x" * 300  # 330+ chars
+
+        state = {
+            'job_id': str(job.id),
+            'client_name': 'Cascade Corp',
+            'vertical': 'technology',
+            'research_report': {'company_overview': 'Test company', 'founded_year': 2015},
+            'competitor_case_studies': [
+                {
+                    'competitor_name': 'RivalCo',
+                    'vertical': 'technology',
+                    'case_study_title': 'AI transformation',
+                    'summary': 'They did great stuff.',
+                    'technologies_used': ['Python', 'TensorFlow'],
+                    'outcomes': ['20% cost reduction'],
+                    'source_url': long_url,
+                    'relevance_score': 0.9,
+                }
+            ],
+            'gap_analysis': {
+                'technology_gaps': ['Needs cloud migration'],
+                'capability_gaps': [],
+                'process_gaps': [],
+                'recommendations': ['Start with cloud assessment'],
+                'priority_areas': ['Cloud'],
+                'confidence_score': 0.75,
+                'analysis_notes': '',
+            },
+            'internal_ops': {
+                'employee_sentiment': {'overall_rating': 3.9, 'trend': 'stable'},
+                'linkedin_presence': {},
+                'social_media_mentions': [],
+                'job_postings': {'total_openings': 10},
+                'news_sentiment': {},
+                'key_insights': ['Stable organisation'],
+                'confidence_score': 0.7,
+                'data_freshness': 'last_30_days',
+                'analysis_notes': '',
+            },
+            'gap_correlations': [],
+            'status': 'completed',
+        }
+
+        result = finalize_result(state)
+
+        assert result['status'] == 'completed'
+
+        # CompetitorCaseStudy must be saved with the long URL (truncated to 2000)
+        assert CompetitorCaseStudy.objects.filter(research_job=job).exists()
+        cs = CompetitorCaseStudy.objects.get(research_job=job)
+        assert len(cs.source_url) <= 2000
+
+        # GapAnalysis must be saved despite the long URL (cascade isolation)
+        assert GapAnalysis.objects.filter(research_job=job).exists()
+
+        # InternalOpsIntel must be saved despite the long URL (cascade isolation)
+        assert InternalOpsIntel.objects.filter(research_job=job).exists()

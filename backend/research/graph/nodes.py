@@ -326,17 +326,21 @@ def finalize_result(state: ResearchState) -> ResearchState:
     if state.get('status') == 'failed':
         return state
 
+    from ..models import ResearchJob, ResearchReport, CompetitorCaseStudy, GapAnalysis, InternalOpsIntel
+
+    job_id = state.get('job_id')
+    if not job_id:
+        logger.warning("No job_id in state, skipping database persistence")
+        return {**state, 'status': 'completed'}
+
     try:
-        from ..models import ResearchJob, ResearchReport, CompetitorCaseStudy, GapAnalysis, InternalOpsIntel
-
-        job_id = state.get('job_id')
-        if not job_id:
-            logger.warning("No job_id in state, skipping database persistence")
-            return {**state, 'status': 'completed'}
-
         job = ResearchJob.objects.get(id=job_id)
+    except Exception as e:
+        logger.exception("Error fetching ResearchJob during finalization")
+        return {**state, 'status': 'completed'}
 
-        # Save vertical to job
+    # Save vertical to job
+    try:
         if state.get('vertical'):
             job.vertical = state['vertical']
             job.save(update_fields=['vertical'])
@@ -379,11 +383,14 @@ def finalize_result(state: ResearchState) -> ResearchState:
                     'web_sources': state.get('web_sources', []),
                 }
             )
+        logger.info(f"ResearchReport saved for job {job_id}")
+    except Exception as e:
+        logger.exception("Error saving ResearchReport for job %s", job_id)
 
-        # Create CompetitorCaseStudy records
+    # Create CompetitorCaseStudy records — isolated so a bad URL cannot block gap/intel saves
+    try:
         case_studies = state.get('competitor_case_studies', [])
         for cs in case_studies:
-            # Truncate fields to fit database column limits
             CompetitorCaseStudy.objects.create(
                 research_job=job,
                 competitor_name=cs.get('competitor_name', '')[:255],
@@ -392,11 +399,15 @@ def finalize_result(state: ResearchState) -> ResearchState:
                 summary=cs.get('summary', ''),
                 technologies_used=cs.get('technologies_used', []),
                 outcomes=cs.get('outcomes', []),
-                source_url=cs.get('source_url', '')[:500],
+                source_url=cs.get('source_url', '')[:2000],  # CompetitorCaseStudy.source_url max_length=2000
                 relevance_score=cs.get('relevance_score', 0.0),
             )
+        logger.info(f"CompetitorCaseStudy records saved for job {job_id}")
+    except Exception as e:
+        logger.exception("Error saving CompetitorCaseStudy records for job %s", job_id)
 
-        # Create GapAnalysis record
+    # Create GapAnalysis record — isolated from competitor save failures
+    try:
         gap_data = state.get('gap_analysis')
         if gap_data:
             GapAnalysis.objects.update_or_create(
@@ -411,8 +422,12 @@ def finalize_result(state: ResearchState) -> ResearchState:
                     'analysis_notes': gap_data.get('analysis_notes', ''),
                 }
             )
+            logger.info(f"GapAnalysis saved for job {job_id}")
+    except Exception as e:
+        logger.exception("Error saving GapAnalysis for job %s", job_id)
 
-        # Create InternalOpsIntel record (AGE-20)
+    # Create InternalOpsIntel record — isolated from gap/competitor save failures
+    try:
         internal_ops_data = state.get('internal_ops')
         if internal_ops_data:
             InternalOpsIntel.objects.update_or_create(
@@ -430,21 +445,20 @@ def finalize_result(state: ResearchState) -> ResearchState:
                     'analysis_notes': internal_ops_data.get('analysis_notes', ''),
                 }
             )
-
-        logger.info(f"Successfully finalized research job {job_id}")
-
-        # Auto-capture to memory (AGE-17)
-        try:
-            from memory.services import MemoryCapture
-            capture = MemoryCapture()
-            capture_result = capture.capture_from_research(job)
-            logger.info(f"Memory capture result: {capture_result}")
-        except Exception as mem_error:
-            logger.warning(f"Memory capture failed (non-fatal): {mem_error}")
-
+            logger.info(f"InternalOpsIntel saved for job {job_id}")
     except Exception as e:
-        logger.exception("Error during finalization")
-        # Non-fatal for finalization, research is still complete
+        logger.exception("Error saving InternalOpsIntel for job %s", job_id)
+
+    logger.info(f"Finalization complete for research job {job_id}")
+
+    # Auto-capture to memory (AGE-17)
+    try:
+        from memory.services import MemoryCapture
+        capture = MemoryCapture()
+        capture_result = capture.capture_from_research(job)
+        logger.info(f"Memory capture result: {capture_result}")
+    except Exception as mem_error:
+        logger.warning(f"Memory capture failed (non-fatal): {mem_error}")
 
     return {
         **state,

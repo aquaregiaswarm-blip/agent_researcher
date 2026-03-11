@@ -136,7 +136,7 @@ class CompetitorCaseStudy(models.Model):
     summary = models.TextField()
     technologies_used = models.JSONField(default=list, blank=True)
     outcomes = models.JSONField(default=list, blank=True)
-    source_url = models.URLField(blank=True)
+    source_url = models.URLField(max_length=2000, blank=True)  # max_length=2000: grounded URLs exceed default 200
     relevance_score = models.FloatField(default=0.0)
 
     created_at = models.DateTimeField(auto_now_add=True)
