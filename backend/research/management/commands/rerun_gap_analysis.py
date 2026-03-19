@@ -54,11 +54,11 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.ERROR(f"  Job {job_id} not found — skipping"))
                 continue
 
-            if not job.report:
+            try:
+                report = job.report
+            except Exception:
                 self.stderr.write(self.style.WARNING(f"  Job {job_id} has no ResearchReport — skipping"))
                 continue
-
-            report = job.report
             competitor_studies = [
                 {
                     "competitor_name": cs.competitor_name,
