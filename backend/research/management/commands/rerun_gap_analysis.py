@@ -11,9 +11,14 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "job_ids",
-            nargs="+",
+            nargs="*",
             type=str,
             help="One or more ResearchJob UUIDs to re-run gap analysis for",
+        )
+        parser.add_argument(
+            "--all-corrupt",
+            action="store_true",
+            help="Find and re-run all jobs whose gap analysis failed to parse",
         )
 
     def handle(self, *args, **options):
@@ -24,7 +29,22 @@ class Command(BaseCommand):
         gemini_client = GeminiClient()
         gap_service = GapAnalysisService(gemini_client)
 
-        for job_id in options["job_ids"]:
+        if options["all_corrupt"]:
+            corrupt_qs = ResearchJob.objects.filter(
+                gap_analysis__analysis_notes__startswith="Analysis parsing failed"
+            )
+            job_ids = list(corrupt_qs.values_list("id", flat=True))
+            job_ids = [str(j) for j in job_ids]
+            if not job_ids:
+                self.stdout.write(self.style.SUCCESS("No corrupt gap analysis records found."))
+                return
+            self.stdout.write(f"Found {len(job_ids)} corrupt record(s): {', '.join(job_ids)}")
+        else:
+            job_ids = options["job_ids"]
+            if not job_ids:
+                raise CommandError("Provide one or more job IDs, or use --all-corrupt")
+
+        for job_id in job_ids:
             self.stdout.write(f"Processing job {job_id}...")
             try:
                 job = ResearchJob.objects.select_related("report").prefetch_related(
