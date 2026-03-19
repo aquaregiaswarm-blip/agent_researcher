@@ -460,6 +460,17 @@ def finalize_result(state: ResearchState) -> ResearchState:
     except Exception as mem_error:
         logger.warning(f"Memory capture failed (non-fatal): {mem_error}")
 
+    # Persist final status to DB here so the job shows as completed even if the
+    # HTTP request handler is interrupted (e.g. Cloud Run 300s timeout).
+    try:
+        job.status = 'completed'
+        job.result = state.get('result', '')
+        job.error = ''
+        job.save(update_fields=['status', 'result', 'error'])
+        logger.info(f"Job {job_id} persisted as completed in DB")
+    except Exception as e:
+        logger.exception("Error persisting final job status for %s", job_id)
+
     return {
         **state,
         'status': 'completed',
