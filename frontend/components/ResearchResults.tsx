@@ -151,26 +151,39 @@ export default function ResearchResults({ job }: ResearchResultsProps) {
 function OverviewTab({ job }: { job: ResearchJob }) {
   const report = job.report;
 
+  if (!report) {
+    return (
+      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+        <p className="font-medium">Structured data not available for this research job.</p>
+        <p className="text-sm mt-1">The raw research output is available in the <strong>Raw Output</strong> tab.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {report?.founded_year && (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {report.founded_year && (
           <StatCard label="Founded" value={String(report.founded_year)} />
         )}
-        {report?.employee_count && (
+        {report.employee_count && (
           <StatCard label="Employees" value={report.employee_count} />
         )}
-        {report?.annual_revenue && (
+        {report.annual_revenue && (
           <StatCard label="Revenue" value={report.annual_revenue} />
         )}
-        {report?.digital_maturity && (
+        {report.digital_maturity && (
           <StatCard label="Digital Maturity" value={report.digital_maturity} className="capitalize" />
         )}
-        {report?.data_maturity && (
-          <StatCard label="Data Maturity" value={report.data_maturity} />
-        )}
       </div>
+
+      {/* Data Maturity — prose section, not a stat card */}
+      {report.data_maturity && (
+        <Section title="Data Maturity">
+          <MarkdownText content={report.data_maturity} className="text-gray-900" />
+        </Section>
+      )}
 
       {/* Company Overview */}
       {report?.company_overview && (
@@ -442,6 +455,21 @@ function CompetitorsTab({ caseStudies }: { caseStudies: CompetitorCaseStudy[] })
 }
 
 function GapsTab({ gaps }: { gaps: GapAnalysis }) {
+  const isParsingFailure =
+    gaps.analysis_notes?.startsWith('Analysis parsing failed') &&
+    gaps.technology_gaps.length === 0 &&
+    gaps.capability_gaps.length === 0 &&
+    gaps.process_gaps.length === 0;
+
+  if (isParsingFailure) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+        <p className="font-medium">Gap analysis could not be parsed for this research job.</p>
+        <p className="text-sm mt-1">Please re-run the research to regenerate gap analysis.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Confidence Score */}

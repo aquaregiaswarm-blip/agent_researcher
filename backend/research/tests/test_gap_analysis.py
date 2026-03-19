@@ -146,6 +146,17 @@ class TestGapAnalysisService:
         call_args = mock_gemini_client.generate_text.call_args[0][0]
         assert "RivalCo" in call_args
 
+    def test_analyze_gaps_code_fence_no_newline(self, mock_gemini_client, sample_gap_response):
+        """Regression: ```json{...}``` with no newline after opening fence should parse successfully."""
+        wrapped = f"```json{sample_gap_response}```"
+        mock_gemini_client.generate_text.return_value = wrapped
+
+        service = GapAnalysisService(mock_gemini_client)
+        result = service.analyze_gaps(client_name="TestCo", vertical="technology")
+
+        assert len(result.technology_gaps) == 2
+        assert result.confidence_score == 0.82
+
     def test_analyze_gaps_empty_pain_points_still_works(self, mock_gemini_client, sample_gap_response):
         mock_gemini_client.generate_text.return_value = sample_gap_response
 
@@ -158,6 +169,59 @@ class TestGapAnalysisService:
         )
 
         assert isinstance(result, GapAnalysisData)
+
+
+# ---------------------------------------------------------------------------
+# Model creation Tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestCreateGapAnalysisModel:
+
+    def test_create_gap_analysis_model_overwrites_corrupt_record(self):
+        """Calling create_gap_analysis_model when a prior corrupt record exists replaces it correctly."""
+        from django.contrib.auth.models import User
+        from research.models import ResearchJob, GapAnalysis
+        from research.services.gap_analysis import GapAnalysisService, GapAnalysisData
+
+        job = ResearchJob.objects.create(
+            client_name="TestCo",
+            sales_history="",
+            prompt="test",
+            status="completed",
+        )
+
+        # Create corrupt record
+        GapAnalysis.objects.create(
+            research_job=job,
+            technology_gaps=[],
+            capability_gaps=[],
+            process_gaps=[],
+            recommendations=[],
+            priority_areas=[],
+            confidence_score=0.0,
+            analysis_notes="Analysis parsing failed. Raw output: ```json {...}```",
+        )
+
+        assert GapAnalysis.objects.filter(research_job=job).count() == 1
+
+        # Re-run with valid data
+        service = GapAnalysisService(Mock())
+        fresh_data = GapAnalysisData(
+            technology_gaps=["T1", "T2"],
+            capability_gaps=["C1"],
+            process_gaps=["P1"],
+            recommendations=["R1"],
+            priority_areas=["A1"],
+            confidence_score=0.85,
+            analysis_notes="Fresh analysis notes.",
+        )
+        result = service.create_gap_analysis_model(job, fresh_data)
+
+        assert GapAnalysis.objects.filter(research_job=job).count() == 1
+        assert result.technology_gaps == ["T1", "T2"]
+        assert result.confidence_score == 0.85
+        assert result.analysis_notes == "Fresh analysis notes."
 
 
 # ---------------------------------------------------------------------------

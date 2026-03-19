@@ -338,6 +338,82 @@ describe('ResearchResults — Deep Research tab', () => {
 
 
 // ---------------------------------------------------------------------------
+// Overview tab — null report fallback
+// ---------------------------------------------------------------------------
+
+describe('ResearchResults — Overview tab null report fallback', () => {
+  it('shows fallback message when report is null', () => {
+    const job = { ...completedJob, report: undefined };
+    render(<ResearchResults job={job} />);
+    expect(screen.getByText('Structured data not available for this research job.')).toBeInTheDocument();
+  });
+
+  it('does not crash when report is null', () => {
+    const job = { ...completedJob, report: undefined };
+    expect(() => render(<ResearchResults job={job} />)).not.toThrow();
+  });
+
+  it('does not render a StatCard for data_maturity — prose section used instead', () => {
+    render(<ResearchResults job={completedJob} />);
+    // Overview tab is active by default
+    // data_maturity should appear under a "Data Maturity" section heading, not as a plain stat card value
+    expect(screen.getByText('Data Maturity')).toBeInTheDocument();
+    // The value should be rendered as prose (via MarkdownText), visible in the DOM
+    expect(screen.getByText('Advanced analytics capability.')).toBeInTheDocument();
+  });
+
+  it('renders data_maturity as prose text, not truncated in a stat card', () => {
+    const longDataMaturity = 'The organisation uses Snowflake for data warehousing, dbt for transformation, and Tableau for visualisation. Governance is managed via a central data team with a defined data mesh strategy.';
+    const reportWithLongDM = { ...baseReport, data_maturity: longDataMaturity };
+    const job = { ...completedJob, report: reportWithLongDM };
+    render(<ResearchResults job={job} />);
+    expect(screen.getByText(longDataMaturity)).toBeInTheDocument();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// Gap Analysis tab — parsing failure state
+// ---------------------------------------------------------------------------
+
+describe('ResearchResults — Gap Analysis tab parsing failure', () => {
+  function renderGapTabWithGaps(gaps: GapAnalysis) {
+    const job = { ...completedJob, gap_analysis: gaps };
+    render(<ResearchResults job={job} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Gap Analysis' }));
+  }
+
+  it('shows clean error state when analysis_notes starts with "Analysis parsing failed" and all arrays are empty', () => {
+    const corruptGaps: GapAnalysis = {
+      ...gapAnalysis,
+      analysis_notes: 'Analysis parsing failed. Raw output: ```json { ... }```',
+      technology_gaps: [],
+      capability_gaps: [],
+      process_gaps: [],
+      confidence_score: 0.0,
+    };
+    renderGapTabWithGaps(corruptGaps);
+    expect(screen.getByText('Gap analysis could not be parsed for this research job.')).toBeInTheDocument();
+    expect(screen.getByText('Please re-run the research to regenerate gap analysis.')).toBeInTheDocument();
+  });
+
+  it('does not show error state when arrays have data even if analysis_notes is empty', () => {
+    const gapsWithContent: GapAnalysis = { ...gapAnalysis, analysis_notes: '' };
+    renderGapTabWithGaps(gapsWithContent);
+    expect(screen.queryByText('Gap analysis could not be parsed for this research job.')).toBeNull();
+    expect(screen.getByText('Technology Gaps')).toBeInTheDocument();
+  });
+
+  it('does not show error state when confidence_score is 0 but gaps have data', () => {
+    const lowConfidenceGaps: GapAnalysis = { ...gapAnalysis, confidence_score: 0.0, analysis_notes: '' };
+    renderGapTabWithGaps(lowConfidenceGaps);
+    expect(screen.queryByText('Gap analysis could not be parsed for this research job.')).toBeNull();
+    expect(screen.getByText('Technology Gaps')).toBeInTheDocument();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
 // Running / failed states
 // ---------------------------------------------------------------------------
 
