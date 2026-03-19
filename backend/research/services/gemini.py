@@ -9,6 +9,24 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def _strip_invalid_citations(data: dict, max_n: int) -> dict:
+    """Strip [N] markers where N > max_n (out-of-range citations from LLM hallucination)."""
+    import re
+
+    def clean(value):
+        if isinstance(value, str):
+            return re.sub(
+                r'\[(\d+)\]',
+                lambda m: m.group(0) if int(m.group(1)) <= max_n else '',
+                value
+            ).strip()
+        if isinstance(value, list):
+            return [clean(v) for v in value]
+        return value
+
+    return {k: clean(v) for k, v in data.items()}
+
+
 @dataclass
 class WebSource:
     """A web source from grounding metadata."""
@@ -171,6 +189,11 @@ Create a cohesive analysis that covers:
 12. Technology partnerships and vendor relationships
 13. Recommended talking points for sales conversations (informed by the sales context above)
 
+## Available Sources (numbered for citation):
+{source_list}
+
+CITATION INSTRUCTIONS: When citing specific facts, add [N] immediately after the fact using the source number above. Only cite when clearly attributable. Omit citations for general statements or conjecture.
+
 Be comprehensive and actionable. Include specific details and cite facts from the research.'''
 
     JSON_FORMAT_PROMPT = '''Convert the following research into a structured JSON format. Your response MUST be valid JSON matching this exact structure:
@@ -217,6 +240,8 @@ Required JSON Structure:
     "financial_signals": ["Technology capex signal from annual report", "AI mention from earnings call"],
     "tech_partnerships": ["AWS Premier Partner", "Snowflake Select Partner"]
 }}
+
+CITATION PRESERVATION: The research text may contain inline citation markers like [1], [2]. Preserve these EXACTLY within string field values. Do not remove, renumber, or modify them.
 
 IMPORTANT: Respond ONLY with valid JSON, no additional text or markdown formatting.'''
 
@@ -392,6 +417,14 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
             # Merge grounding metadata from all queries
             merged_metadata = self._merge_grounding_metadata(query_results)
 
+            # Build numbered source list for citation instructions
+            source_list_text = ""
+            if merged_metadata and merged_metadata.web_sources:
+                source_list_text = "\n".join(
+                    f"{i+1}. {s.title or 'Source'} — {s.uri}"
+                    for i, s in enumerate(merged_metadata.web_sources)
+                )
+
             # Build synthesis input from results
             def _text(key: str, default: str) -> str:
                 r = query_results.get(key, GroundedQueryResult(query_type=key))
@@ -419,6 +452,7 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
                 cybersecurity_compliance=cybersec_text,
                 data_analytics=data_analytics_text,
                 financial_filings=financial_text,
+                source_list=source_list_text,
             )
 
             try:
@@ -454,6 +488,12 @@ Respond with ONLY the vertical name (e.g., "healthcare" or "finance"), nothing e
                 response_text = '\n'.join(lines[1:-1])
 
             data = json.loads(response_text)
+
+            # Strip out-of-range citation markers that the LLM may have hallucinated
+            max_citations = len(merged_metadata.web_sources) if merged_metadata else 0
+            if max_citations:
+                data = _strip_invalid_citations(data, max_citations)
+
             # Filter to known fields to avoid unexpected keyword arguments
             known_fields = {f.name for f in ResearchReportData.__dataclass_fields__.values()}
             filtered_data = {k: v for k, v in data.items() if k in known_fields}

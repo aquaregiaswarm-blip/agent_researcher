@@ -430,3 +430,67 @@ describe('ResearchResults — loading and error states', () => {
     expect(screen.getByText('API quota exceeded')).toBeInTheDocument();
   });
 });
+
+
+// ---------------------------------------------------------------------------
+// Inline citations — MarkdownText via Overview tab
+// ---------------------------------------------------------------------------
+
+describe('ResearchResults — inline citation rendering', () => {
+  const citationSources = [
+    { uri: 'https://citeref1.com', title: 'Citation Source One' },
+    { uri: 'https://citeref2.com', title: 'Citation Source Two' },
+    { uri: 'https://citeref3.com', title: 'Citation Source Three' },
+  ];
+
+  function renderOverviewWithContent(data_maturity: string, web_sources = citationSources) {
+    const report = { ...baseReport, data_maturity, web_sources };
+    const job = { ...completedJob, report };
+    render(<ResearchResults job={job} />);
+    // Overview tab is active by default
+  }
+
+  it('renders [1] as a superscript badge when sources are provided', () => {
+    renderOverviewWithContent('Uses Snowflake for analytics [1].');
+    const sups = document.querySelectorAll('sup');
+    const supTexts = Array.from(sups).map(s => s.textContent?.trim());
+    expect(supTexts.some(t => t === '1')).toBe(true);
+  });
+
+  it('citation badge links to the corresponding source URI', () => {
+    renderOverviewWithContent('Cloud-native infrastructure [1].');
+    const links = document.querySelectorAll('a[href="https://citeref1.com"]');
+    expect(links.length).toBeGreaterThan(0);
+  });
+
+  it('citation badge has source title as tooltip', () => {
+    renderOverviewWithContent('Data mesh strategy [1].');
+    const links = document.querySelectorAll('a[title="Citation Source One"]');
+    expect(links.length).toBeGreaterThan(0);
+  });
+
+  it('does not render a superscript for [99] when only 3 sources exist', () => {
+    renderOverviewWithContent('Out of range [99] citation.');
+    // [99] should not be converted — no <sup> with "99"
+    const sups = document.querySelectorAll('sup');
+    const supTexts = Array.from(sups).map(s => s.textContent?.trim());
+    expect(supTexts.some(t => t === '99')).toBe(false);
+    // The raw text [99] should still appear in the DOM
+    expect(document.body.textContent).toContain('[99]');
+  });
+
+  it('renders normally when no sources provided (no badges, no errors)', () => {
+    const report = { ...baseReport, data_maturity: 'Plain maturity text.', web_sources: [] };
+    const job = { ...completedJob, report };
+    expect(() => render(<ResearchResults job={job} />)).not.toThrow();
+    expect(screen.getByText('Plain maturity text.')).toBeInTheDocument();
+  });
+
+  it('renders multiple citation badges for multiple valid [N] in one field', () => {
+    renderOverviewWithContent('First fact [1] and second fact [2].');
+    const sups = document.querySelectorAll('sup');
+    const supTexts = Array.from(sups).map(s => s.textContent?.trim());
+    expect(supTexts.some(t => t === '1')).toBe(true);
+    expect(supTexts.some(t => t === '2')).toBe(true);
+  });
+});

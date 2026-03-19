@@ -5,11 +5,54 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ResearchJob, ResearchReport, CompetitorCaseStudy, GapAnalysis, InternalOpsIntel, GapCorrelation, WebSource } from '@/types';
 import { api } from '@/lib/api';
+import { preprocessCitations } from '@/lib/citations';
 
-function MarkdownText({ content, className = '' }: { content: string; className?: string }) {
+function MarkdownText({
+  content,
+  className = '',
+  sources = [],
+}: {
+  content: string;
+  className?: string;
+  sources?: WebSource[];
+}) {
+  const processedContent = sources.length
+    ? preprocessCitations(content, sources)
+    : content;
+
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} className={`prose prose-sm max-w-none ${className}`}>
-      {content}
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      className={`prose prose-sm max-w-none ${className}`}
+      urlTransform={(url) => url}
+      components={{
+        a: ({ href, children }) => {
+          if (href?.startsWith('citation:')) {
+            const n = parseInt(href.split(':')[1], 10);
+            const source = sources[n - 1];
+            return (
+              <a
+                href={source?.uri ?? '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={source?.title ?? `Source ${n}`}
+                className="no-underline"
+              >
+                <sup className="inline-flex items-center justify-center min-w-[1.1em] h-[1.1em] text-[0.65em] font-semibold bg-blue-100 text-blue-700 rounded-full px-1 hover:bg-blue-200 transition-colors cursor-pointer">
+                  {n}
+                </sup>
+              </a>
+            );
+          }
+          return (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          );
+        },
+      }}
+    >
+      {processedContent}
     </ReactMarkdown>
   );
 }
@@ -130,13 +173,13 @@ export default function ResearchResults({ job }: ResearchResultsProps) {
           <p className="text-red-600">{job.error || 'Research failed'}</p>
         ) : (
           <>
-            {activeTab === 'overview' && <OverviewTab job={job} />}
-            {activeTab === 'report' && job.report && <ReportTab report={job.report} />}
+            {activeTab === 'overview' && <OverviewTab job={job} sources={job.report?.web_sources ?? []} />}
+            {activeTab === 'report' && job.report && <ReportTab report={job.report} sources={job.report.web_sources ?? []} />}
             {activeTab === 'competitors' && job.competitor_case_studies && (
               <CompetitorsTab caseStudies={job.competitor_case_studies} />
             )}
-            {activeTab === 'gaps' && job.gap_analysis && <GapsTab gaps={job.gap_analysis} />}
-            {activeTab === 'intel' && job.internal_ops && <InsideIntelTab intel={job.internal_ops} />}
+            {activeTab === 'gaps' && job.gap_analysis && <GapsTab gaps={job.gap_analysis} sources={job.report?.web_sources ?? []} />}
+            {activeTab === 'intel' && job.internal_ops && <InsideIntelTab intel={job.internal_ops} sources={job.report?.web_sources ?? []} />}
             {activeTab === 'sources' && job.report?.web_sources && (
               <SourcesTab sources={job.report.web_sources} />
             )}
@@ -148,7 +191,7 @@ export default function ResearchResults({ job }: ResearchResultsProps) {
   );
 }
 
-function OverviewTab({ job }: { job: ResearchJob }) {
+function OverviewTab({ job, sources = [] }: { job: ResearchJob; sources?: WebSource[] }) {
   const report = job.report;
 
   if (!report) {
@@ -181,7 +224,7 @@ function OverviewTab({ job }: { job: ResearchJob }) {
       {/* Data Maturity — prose section, not a stat card */}
       {report.data_maturity && (
         <Section title="Data Maturity">
-          <MarkdownText content={report.data_maturity} className="text-gray-900" />
+          <MarkdownText content={report.data_maturity} className="text-gray-900" sources={sources} />
         </Section>
       )}
 
@@ -253,7 +296,7 @@ function OverviewTab({ job }: { job: ResearchJob }) {
   );
 }
 
-function ReportTab({ report }: { report: ResearchReport }) {
+function ReportTab({ report, sources = [] }: { report: ResearchReport; sources?: WebSource[] }) {
   return (
     <div className="space-y-6">
       {/* Company Details */}
@@ -290,7 +333,7 @@ function ReportTab({ report }: { report: ResearchReport }) {
           )}
         </div>
         {report.ai_footprint && (
-          <MarkdownText content={report.ai_footprint} className="text-gray-900" />
+          <MarkdownText content={report.ai_footprint} className="text-gray-900" sources={sources} />
         )}
       </Section>
 
@@ -301,19 +344,19 @@ function ReportTab({ report }: { report: ResearchReport }) {
             {report.cloud_footprint && (
               <div>
                 <div className="text-sm font-medium text-gray-700 mb-1">Cloud Footprint</div>
-                <MarkdownText content={report.cloud_footprint} className="text-gray-900" />
+                <MarkdownText content={report.cloud_footprint} className="text-gray-900" sources={sources} />
               </div>
             )}
             {report.security_posture && (
               <div>
                 <div className="text-sm font-medium text-gray-700 mb-1">Security Posture</div>
-                <MarkdownText content={report.security_posture} className="text-gray-900" />
+                <MarkdownText content={report.security_posture} className="text-gray-900" sources={sources} />
               </div>
             )}
             {report.data_maturity && (
               <div>
                 <div className="text-sm font-medium text-gray-700 mb-1">Data Maturity</div>
-                <MarkdownText content={report.data_maturity} className="text-gray-900" />
+                <MarkdownText content={report.data_maturity} className="text-gray-900" sources={sources} />
               </div>
             )}
           </div>
@@ -454,7 +497,7 @@ function CompetitorsTab({ caseStudies }: { caseStudies: CompetitorCaseStudy[] })
   );
 }
 
-function GapsTab({ gaps }: { gaps: GapAnalysis }) {
+function GapsTab({ gaps, sources = [] }: { gaps: GapAnalysis; sources?: WebSource[] }) {
   const isParsingFailure =
     gaps.analysis_notes?.startsWith('Analysis parsing failed') &&
     gaps.technology_gaps.length === 0 &&
@@ -490,7 +533,7 @@ function GapsTab({ gaps }: { gaps: GapAnalysis }) {
           <div className="space-y-2">
             {gaps.priority_areas.map((area, i) => (
               <div key={i} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-gray-900">
-                <span className="font-medium">#{i + 1}</span> <MarkdownText content={area} />
+                <span className="font-medium">#{i + 1}</span> <MarkdownText content={area} sources={sources} />
               </div>
             ))}
           </div>
@@ -500,13 +543,13 @@ function GapsTab({ gaps }: { gaps: GapAnalysis }) {
       {/* Gaps Grid */}
       <div className="grid md:grid-cols-3 gap-4">
         {gaps.technology_gaps && gaps.technology_gaps.length > 0 && (
-          <GapList title="Technology Gaps" items={gaps.technology_gaps} color="red" />
+          <GapList title="Technology Gaps" items={gaps.technology_gaps} color="red" sources={sources} />
         )}
         {gaps.capability_gaps && gaps.capability_gaps.length > 0 && (
-          <GapList title="Capability Gaps" items={gaps.capability_gaps} color="orange" />
+          <GapList title="Capability Gaps" items={gaps.capability_gaps} color="orange" sources={sources} />
         )}
         {gaps.process_gaps && gaps.process_gaps.length > 0 && (
-          <GapList title="Process Gaps" items={gaps.process_gaps} color="purple" />
+          <GapList title="Process Gaps" items={gaps.process_gaps} color="purple" sources={sources} />
         )}
       </div>
 
@@ -516,7 +559,7 @@ function GapsTab({ gaps }: { gaps: GapAnalysis }) {
           <ul className="space-y-2">
             {gaps.recommendations.map((rec, i) => (
               <li key={i} className="p-3 bg-green-50 rounded-lg text-gray-900">
-                <MarkdownText content={rec} />
+                <MarkdownText content={rec} sources={sources} />
               </li>
             ))}
           </ul>
@@ -526,14 +569,14 @@ function GapsTab({ gaps }: { gaps: GapAnalysis }) {
       {/* Analysis Notes */}
       {gaps.analysis_notes && (
         <Section title="Analysis Notes">
-          <MarkdownText content={gaps.analysis_notes} className="text-gray-800 text-sm" />
+          <MarkdownText content={gaps.analysis_notes} className="text-gray-800 text-sm" sources={sources} />
         </Section>
       )}
     </div>
   );
 }
 
-function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
+function InsideIntelTab({ intel, sources = [] }: { intel: InternalOpsIntel; sources?: WebSource[] }) {
   return (
     <div className="space-y-6">
       {/* Section 1: Employee Sentiment Overview */}
@@ -685,7 +728,7 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
             {/* Hiring Insights */}
             {intel.job_postings.insights && (
               <div className="p-3 bg-blue-50 rounded-lg">
-                <MarkdownText content={intel.job_postings.insights} className="text-gray-900 text-sm" />
+                <MarkdownText content={intel.job_postings.insights} className="text-gray-900 text-sm" sources={sources} />
               </div>
             )}
           </div>
@@ -834,7 +877,7 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
           </p>
           <div className="space-y-3">
             {intel.gap_correlations.map((corr, i) => (
-              <GapCorrelationCard key={i} correlation={corr} />
+              <GapCorrelationCard key={i} correlation={corr} sources={sources} />
             ))}
           </div>
         </Section>
@@ -846,7 +889,7 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
           <div className="space-y-2">
             {intel.key_insights.map((insight, i) => (
               <div key={i} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <MarkdownText content={insight} className="text-gray-900" />
+                <MarkdownText content={insight} className="text-gray-900" sources={sources} />
               </div>
             ))}
           </div>
@@ -873,7 +916,7 @@ function InsideIntelTab({ intel }: { intel: InternalOpsIntel }) {
 
       {/* Analysis Notes */}
       {intel.analysis_notes && (
-        <MarkdownText content={intel.analysis_notes} className="text-xs text-gray-500 italic" />
+        <MarkdownText content={intel.analysis_notes} className="text-xs text-gray-500 italic" sources={sources} />
       )}
     </div>
   );
@@ -887,7 +930,7 @@ function SourcesTab({ sources }: { sources: WebSource[] }) {
       </p>
       <div className="space-y-3">
         {sources.map((source, i) => (
-          <div key={i} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+          <div key={i} id={`source-${i + 1}`} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                 <span className="text-xs text-blue-600 font-medium">{i + 1}</span>
@@ -964,7 +1007,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function GapList({ title, items, color }: { title: string; items: string[]; color: 'red' | 'orange' | 'purple' }) {
+function GapList({ title, items, color, sources = [] }: { title: string; items: string[]; color: 'red' | 'orange' | 'purple'; sources?: WebSource[] }) {
   const colorClasses = {
     red: 'bg-red-50 border-red-200',
     orange: 'bg-orange-50 border-orange-200',
@@ -977,7 +1020,7 @@ function GapList({ title, items, color }: { title: string; items: string[]; colo
       <ul className="space-y-2">
         {items.map((item, i) => (
           <li key={i} className={`p-2 text-sm rounded border ${colorClasses[color]}`}>
-            <MarkdownText content={item} />
+            <MarkdownText content={item} sources={sources} />
           </li>
         ))}
       </ul>
@@ -1077,7 +1120,7 @@ function SentimentBadge({
   );
 }
 
-function GapCorrelationCard({ correlation }: { correlation: GapCorrelation }) {
+function GapCorrelationCard({ correlation, sources = [] }: { correlation: GapCorrelation; sources?: WebSource[] }) {
   const typeColors = {
     technology: 'border-l-red-400',
     capability: 'border-l-orange-400',
@@ -1110,11 +1153,11 @@ function GapCorrelationCard({ correlation }: { correlation: GapCorrelation }) {
         </div>
       </div>
       <div className="text-sm text-gray-700 mb-2">
-        <span className="font-medium">Evidence:</span> <MarkdownText content={correlation.evidence} className="inline" />
+        <span className="font-medium">Evidence:</span> <MarkdownText content={correlation.evidence} className="inline" sources={sources} />
       </div>
       {correlation.sales_implication && (
         <div className="text-sm text-blue-700 bg-blue-50 p-2 rounded">
-          <span className="font-medium">Sales Implication:</span> <MarkdownText content={correlation.sales_implication} className="inline" />
+          <span className="font-medium">Sales Implication:</span> <MarkdownText content={correlation.sales_implication} className="inline" sources={sources} />
         </div>
       )}
     </div>
