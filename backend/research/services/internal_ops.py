@@ -383,12 +383,12 @@ IMPORTANT:
         """Parse raw JSON dict into InternalOpsData."""
         es_data = data.get('employee_sentiment', {})
         employee_sentiment = EmployeeSentiment(
-            overall_rating=float(es_data.get('overall_rating', 0.0)),
-            work_life_balance=float(es_data.get('work_life_balance', 0.0)),
-            compensation=float(es_data.get('compensation', 0.0)),
-            culture=float(es_data.get('culture', 0.0)),
-            management=float(es_data.get('management', 0.0)),
-            recommend_pct=int(es_data.get('recommend_pct', 0)),
+            overall_rating=float(es_data.get('overall_rating') or 0.0),
+            work_life_balance=float(es_data.get('work_life_balance') or 0.0),
+            compensation=float(es_data.get('compensation') or 0.0),
+            culture=float(es_data.get('culture') or 0.0),
+            management=float(es_data.get('management') or 0.0),
+            recommend_pct=int(es_data.get('recommend_pct') or 0),
             positive_themes=es_data.get('positive_themes', []),
             negative_themes=es_data.get('negative_themes', []),
             trend=es_data.get('trend', 'stable'),
@@ -396,7 +396,7 @@ IMPORTANT:
 
         li_data = data.get('linkedin_presence', {})
         linkedin_presence = LinkedInPresence(
-            follower_count=int(li_data.get('follower_count', 0)),
+            follower_count=int(li_data.get('follower_count') or 0),
             engagement_level=li_data.get('engagement_level', 'medium'),
             recent_posts=li_data.get('recent_posts', []),
             employee_trend=li_data.get('employee_trend', 'stable'),
@@ -415,7 +415,7 @@ IMPORTANT:
 
         jp_data = data.get('job_postings', {})
         job_postings = JobPostings(
-            total_openings=int(jp_data.get('total_openings', 0)),
+            total_openings=int(jp_data.get('total_openings') or 0),
             departments_hiring=jp_data.get('departments_hiring', {}),
             skills_sought=jp_data.get('skills_sought', []),
             seniority_distribution=jp_data.get('seniority_distribution', {}),

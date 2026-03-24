@@ -19,6 +19,7 @@ __pycache__/
 # Django
 backend/db.sqlite3
 backend/*.log
+backend/exports/
 
 # Node.js
 node_modules/

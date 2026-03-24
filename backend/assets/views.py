@@ -74,6 +74,12 @@ class GeneratePersonasView(APIView):
         if err:
             return err
 
+        # Return existing personas if already generated (avoid wasted Gemini call)
+        existing = list(Persona.objects.filter(research_job=job))
+        if existing:
+            output_serializer = PersonaSerializer(existing, many=True)
+            return Response(output_serializer.data, status=status.HTTP_200_OK)
+
         # Generate personas
         generator = PersonaGenerator()
         persona_data = generator.generate_personas(job)
@@ -125,6 +131,14 @@ class GenerateOnePagerView(APIView):
         job, err = _get_completed_job(serializer.validated_data['research_job_id'])
         if err:
             return err
+
+        # Return existing one-pager if already generated and no specific use_case requested
+        use_case_id = serializer.validated_data.get('use_case_id')
+        if not use_case_id:
+            existing = OnePager.objects.filter(research_job=job, use_case__isnull=True).first()
+            if existing:
+                output_serializer = OnePagerSerializer(existing)
+                return Response(output_serializer.data, status=status.HTTP_200_OK)
 
         # Get optional use case
         use_case = None

@@ -11,6 +11,7 @@ from .serializers import (
     UseCaseCreateSerializer,
 )
 from .services import UseCaseGenerator, FeasibilityService, PlayRefiner
+from research.models import ResearchJob
 
 
 class UseCaseListView(generics.ListAPIView):
@@ -49,8 +50,6 @@ class GenerateUseCasesView(APIView):
         """
         serializer = UseCaseCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        from research.models import ResearchJob
 
         try:
             job = ResearchJob.objects.get(pk=serializer.validated_data['research_job_id'])

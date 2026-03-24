@@ -70,7 +70,11 @@ def run_research_async(job_id: str):
 class ResearchJobListView(generics.ListAPIView):
     """View for listing all research jobs."""
 
-    queryset = ResearchJob.objects.all().order_by('-created_at')
+    queryset = ResearchJob.objects.select_related(
+        'report', 'gap_analysis', 'internal_ops'
+    ).prefetch_related(
+        'competitor_case_studies'
+    ).order_by('-created_at')
     serializer_class = ResearchJobDetailSerializer
 
 

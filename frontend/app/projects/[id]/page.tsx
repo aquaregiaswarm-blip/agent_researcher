@@ -439,6 +439,7 @@ function ResearchResultsWrapper({
         setJob(updated);
       });
       poller.promise.catch(console.error);
+      return () => poller.cancel();
     }
   }, [researchJobId, status]);
 
