@@ -23,16 +23,18 @@ class CompetitorCaseStudyData:
 class CompetitorSearchService:
     """Service to find competitor AI case studies."""
 
-    COMPETITOR_SEARCH_PROMPT = '''You are a competitive intelligence researcher. Find AI and technology case studies from competitors in the same industry as the target company.
+    COMPETITOR_SEARCH_PROMPT = '''You are a competitive intelligence researcher. Find real, published case studies of AI and technology implementations at companies in the same industry as {client_name}. These will be used to create competitive urgency in sales conversations.
 
 Target Company: {client_name}
 Industry Vertical: {vertical}
 Company Overview: {company_overview}
 
-Search for and identify 3-5 relevant case studies from competitors or similar companies that have successfully implemented AI solutions. Focus on:
-1. Companies in the same or adjacent industries
-2. Similar size or market position
-3. AI/ML implementations with measurable outcomes
+Answer these questions:
+
+1. What companies compete directly with {client_name} or operate in the same industry segment? Identify 3-5 named competitors by searching for "{vertical} industry competitors" and "{client_name} competitors."
+2. Have any of these competitors published AI, ML, automation, or digital transformation case studies? Search vendor case study libraries (AWS, Microsoft, Google Cloud, Snowflake, Databricks, CrowdStrike, ServiceNow, etc.) for case studies featuring companies in the {vertical} industry.
+3. For each case study found: what was the business problem, the technology solution, the named vendors/platforms used, and the measurable outcomes (cost savings %, efficiency gains, revenue impact)?
+4. Are there industry analyst reports (Gartner, Forrester, McKinsey, Deloitte) highlighting AI adoption trends in {vertical} that reference specific company examples?
 
 Respond with valid JSON matching this structure:
 {{
@@ -41,20 +43,20 @@ Respond with valid JSON matching this structure:
             "competitor_name": "Company Name",
             "vertical": "industry vertical",
             "case_study_title": "Title of the case study or project",
-            "summary": "2-3 sentence summary of what they did and why",
-            "technologies_used": ["Technology 1", "Technology 2"],
-            "outcomes": ["Measurable outcome 1", "Measurable outcome 2"],
+            "summary": "2-3 sentence summary of what they did, why, and the outcome",
+            "technologies_used": ["Named Technology 1", "Named Technology 2"],
+            "outcomes": ["Specific measurable outcome 1", "Specific measurable outcome 2"],
             "source_url": "https://example.com/case-study",
             "relevance_score": 0.85
         }}
     ]
 }}
 
-IMPORTANT:
-- Include 3-5 case studies
-- relevance_score should be 0.0-1.0 based on how relevant to the target company
-- Focus on AI, ML, automation, and digital transformation case studies
-- Be specific about technologies and outcomes
+RULES:
+- Include 3-5 case studies. If fewer exist, return what you find rather than fabricating.
+- relevance_score: 0.0-1.0 based on industry, company size, and problem similarity to {client_name}
+- Every case study must have a real source_url. If no URL is available, use "" and note "Source URL not found" in the summary.
+- Be specific about technologies and measurable outcomes — no vague claims.
 - Respond ONLY with valid JSON
 '''
 

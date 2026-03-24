@@ -55,7 +55,7 @@ Respond with valid JSON:
         {{"name": "Name", "title": "Title", "role_in_decision": "Champion/Influencer/Blocker", "engagement_approach": "How to engage"}}
     ],
     "opportunities": [
-        {{"name": "Opportunity name", "value": "$100K-500K", "timeline": "Q2 2024", "probability": "60%"}}
+        {{"name": "Opportunity name", "value": "$100K-500K", "timeline": "Q3 2025", "probability": "60%"}}
     ],
     "competitive_landscape": "Analysis of competitive positioning",
     "swot_analysis": {{
@@ -67,11 +67,11 @@ Respond with valid JSON:
     "engagement_strategy": "Overall engagement strategy",
     "value_propositions": ["Value prop 1", "Value prop 2"],
     "action_plan": [
-        {{"action": "Action item", "owner": "Sales rep", "due_date": "2024-03-15", "status": "Not started"}}
+        {{"action": "Action item", "owner": "Sales rep", "due_date": "Within 30 days", "status": "Not started"}}
     ],
     "success_metrics": ["Metric 1", "Metric 2"],
     "milestones": [
-        {{"milestone": "Milestone name", "target_date": "2024-04-01", "criteria": "Success criteria"}}
+        {{"milestone": "Milestone name", "target_date": "Within 60 days", "criteria": "Success criteria"}}
     ],
     "timeline": "Overall timeline description"
 }}
@@ -80,6 +80,7 @@ IMPORTANT:
 - Be strategic and actionable
 - Include specific stakeholder engagement tactics
 - Provide realistic timelines
+- Use realistic future dates relative to the current date, not hardcoded past dates
 - Respond ONLY with valid JSON
 '''
 

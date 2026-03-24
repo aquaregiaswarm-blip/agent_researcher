@@ -29,6 +29,11 @@ Target Company: {client_name}
 Industry Vertical: {vertical}
 Company Overview: {company_overview}
 
+## Research Directive (from submitter):
+{prompt}
+
+Weight your gap analysis toward themes flagged above. If the submitter identified specific technology areas or competitive concerns, ensure those are reflected in your gap identification.
+
 Sales History:
 {sales_history}
 
@@ -103,6 +108,7 @@ IMPORTANT:
         vertical: str,
         company_overview: str = "",
         sales_history: str = "",
+        prompt: str = "",
         pain_points: list = None,
         opportunities: list = None,
         strategic_goals: list = None,
@@ -146,10 +152,12 @@ IMPORTANT:
                     summaries.append(f"- {name}: {title} — {summary}")
             return "\n".join(summaries) if summaries else "None available"
 
-        prompt = self.GAP_ANALYSIS_PROMPT.format(
+        prompt_value = prompt.strip() if prompt and prompt.strip() else "No specific directive provided."
+        formatted_prompt = self.GAP_ANALYSIS_PROMPT.format(
             client_name=client_name,
             vertical=vertical,
             company_overview=company_overview or "Not available",
+            prompt=prompt_value,
             sales_history=sales_history or "No sales history provided",
             pain_points=fmt_list(pain_points),
             opportunities=fmt_list(opportunities),
@@ -162,7 +170,7 @@ IMPORTANT:
         )
 
         try:
-            response = self.gemini_client.generate_text(prompt)
+            response = self.gemini_client.generate_text(formatted_prompt)
 
             # Parse JSON response
             response_text = response.strip()

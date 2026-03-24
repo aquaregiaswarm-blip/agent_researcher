@@ -55,6 +55,7 @@ def conduct_research(state: ResearchState) -> ResearchState:
         report_data, grounding_metadata = client.conduct_deep_research(
             client_name=state.get('client_name', ''),
             sales_history=state.get('sales_history', ''),
+            prompt=state.get('prompt', ''),
         )
 
         # Convert to dict for state storage
@@ -203,6 +204,7 @@ def analyze_gaps(state: ResearchState) -> ResearchState:
             vertical=state.get('vertical', 'other'),
             company_overview=report.get('company_overview', ''),
             sales_history=state.get('sales_history', ''),
+            prompt=state.get('prompt', ''),
             pain_points=report.get('pain_points', []),
             opportunities=report.get('opportunities', []),
             strategic_goals=report.get('strategic_goals', []),

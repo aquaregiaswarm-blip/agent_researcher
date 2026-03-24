@@ -95,6 +95,7 @@ class TestSynthesisPromptSourceList:
 
         prompt = client.SYNTHESIS_PROMPT.format(
             client_name="TestCo",
+            prompt="No specific research directive provided.",
             sales_history="No prior sales history provided.",
             profile="Profile text.",
             news="News text.",
@@ -109,7 +110,7 @@ class TestSynthesisPromptSourceList:
 
         assert "1. Example Article — https://example.com/1" in prompt
         assert "2. News Story — https://news.com/2" in prompt
-        assert "CITATION INSTRUCTIONS" in prompt
+        assert "CITATION RULES" in prompt
 
     def test_synthesis_prompt_works_with_empty_source_list(self):
         """Prompt should render without error when no sources (empty string)."""
@@ -117,6 +118,7 @@ class TestSynthesisPromptSourceList:
 
         prompt = client.SYNTHESIS_PROMPT.format(
             client_name="TestCo",
+            prompt="No specific research directive provided.",
             sales_history="No prior sales history provided.",
             profile="Profile text.",
             news="News text.",
@@ -130,7 +132,7 @@ class TestSynthesisPromptSourceList:
         )
 
         assert "TestCo" in prompt
-        assert "CITATION INSTRUCTIONS" in prompt
+        assert "CITATION RULES" in prompt
 
     def test_json_format_prompt_includes_preservation_instruction(self):
         """JSON format prompt should include the citation preservation instruction."""

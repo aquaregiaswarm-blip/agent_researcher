@@ -79,6 +79,7 @@ def conduct_grounded_query(genai_client, prompt: str, query_type: str, model: st
             contents=prompt,
             config=types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
+                temperature=1.0,
             ),
         )
 

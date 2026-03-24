@@ -28,7 +28,11 @@ class UseCaseData:
 class UseCaseGenerator:
     """Service to generate AI use cases from research insights."""
 
-    USE_CASE_PROMPT = '''You are an AI solutions architect generating use cases for a prospect.
+    USE_CASE_PROMPT = '''You are an AI solutions architect generating use cases for a prospect on behalf of a value-added reseller and systems integrator.
+
+Our capabilities include: cloud infrastructure and migration, cybersecurity and compliance, data and analytics platforms, AI/ML solutions, managed services and outsourced IT operations, networking and SD-WAN, and application modernization.
+
+Only propose use cases that align with these capability areas. Do not propose use cases requiring proprietary SaaS product development, custom hardware, or capabilities outside our scope.
 
 Based on the following research:
 - Company: {client_name}

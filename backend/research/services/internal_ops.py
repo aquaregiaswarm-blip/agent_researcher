@@ -144,50 +144,64 @@ class InternalOpsData:
 class InternalOpsService:
     """Service to gather internal operations intelligence."""
 
-    INTERNAL_OPS_JOB_POSTINGS_PROMPT = '''Research current job postings and hiring activity for {client_name} ({vertical}).
+    INTERNAL_OPS_JOB_POSTINGS_PROMPT = '''Research current job postings and hiring patterns at {client_name} ({vertical}) to identify strategic priorities and technology preferences.
 
-Search LinkedIn Jobs, Indeed, Glassdoor Jobs, and the company's own careers page at {website}.
+Answer each of these questions:
 
-Find:
-- Number of open positions
-- Which departments are hiring (Engineering, Sales, Marketing, Operations, etc.)
-- Key technical skills and qualifications being sought
-- Seniority levels being hired (Entry, Mid, Senior, Executive)
-- Any urgency signals (sign-on bonuses, "immediate start", "hiring for growth")
-- What the hiring patterns tell us about company priorities
+1. How many open positions does {client_name} currently have listed? Search LinkedIn Jobs, Indeed, Glassdoor, and {website}/careers.
+2. Which departments have the most openings? Break down by: Engineering/IT, Sales, Marketing, Operations, Finance, HR, and other.
+3. What specific technologies, certifications, and skills appear in technical job postings? List the most frequently mentioned: programming languages, cloud platforms, security tools, data platforms, and AI/ML frameworks.
+4. What seniority levels are being hired? Estimate distribution across: Entry, Mid, Senior, Director/VP, and Executive.
+5. Are there urgency signals? Look for: sign-on bonuses, "immediate start," relocation packages, "newly created role," or multiple postings for the same role title.
+6. What do the hiring patterns reveal about company priorities? Heavy engineering hiring suggests product investment. Security hiring suggests compliance pressure. Data hiring suggests analytics investment. Sales hiring suggests growth mode.
 
-Provide a detailed, factual summary based on publicly available job postings.'''
+OUTPUT FORMAT:
+HIRING VOLUME: Total openings and trend vs. 3-6 months ago if available
+DEPARTMENT BREAKDOWN: Department | Approximate count | Notable roles
+TECHNOLOGY SIGNALS: Most frequently mentioned technologies across postings
+SENIORITY MIX: Distribution across levels
+URGENCY SIGNALS: Specific indicators with examples
+STRATEGIC INTERPRETATION: 2-3 sentences on what hiring patterns reveal'''
 
-    INTERNAL_OPS_SENTIMENT_PROMPT = '''Research employee sentiment and workplace culture for {client_name}.
+    INTERNAL_OPS_SENTIMENT_PROMPT = '''Research employee sentiment and workplace culture at {client_name} using public employer review platforms.
 
-Search Glassdoor, Indeed company reviews, Blind, and other public employer review platforms.
+Answer each of these questions:
 
-Find:
-- Overall employee rating (if available)
-- Ratings for: work-life balance, compensation & benefits, culture & values, management
-- Percentage of employees who would recommend the company
-- Common positive themes in reviews (what employees appreciate)
-- Common negative themes (challenges or frustrations)
-- Whether sentiment is improving, declining, or stable over time
-- Notable leadership or management feedback
+1. What is {client_name}'s overall Glassdoor rating (out of 5.0)? What are the sub-ratings for: Work-Life Balance, Compensation & Benefits, Culture & Values, Senior Leadership, Career Opportunities?
+2. What percentage of employees recommend {client_name} to a friend? What percentage approve of the CEO?
+3. What are the most common POSITIVE themes in recent reviews (last 12 months)? Quote specific patterns, not generic praise.
+4. What are the most common NEGATIVE themes in recent reviews (last 12 months)? Look for: management issues, technical debt frustration, tooling complaints, process inefficiencies, or organizational dysfunction that might indicate technology pain points.
+5. Is overall sentiment improving, declining, or stable compared to 12-24 months ago?
+6. Are there specific reviews from IT, Engineering, or Technology teams that reveal internal technology frustrations or positive signals about tools and processes?
 
-Provide a factual summary based on publicly available employee reviews.'''
+OUTPUT FORMAT:
+RATINGS: Overall | Work-Life | Comp | Culture | Leadership | Career Opportunities | Recommend % | CEO Approval %
+POSITIVE THEMES: Top 3-5 with representative examples
+NEGATIVE THEMES: Top 3-5 with representative examples (flag technology/process-related complaints)
+TREND: Improving / Declining / Stable with evidence
+TECHNOLOGY TEAM SIGNALS: IT/Engineering-specific sentiment if found'''
 
-    INTERNAL_OPS_NEWS_SOCIAL_PROMPT = '''Research recent news, press releases, and social media activity for {client_name}.
+    INTERNAL_OPS_NEWS_SOCIAL_PROMPT = '''Research {client_name}'s social media presence, employer brand signals, and public culture indicators.
 
-Search news aggregators, company press releases, Reddit, Twitter/X, and LinkedIn posts.
+Answer each of these questions:
 
-Find:
-- Company LinkedIn follower count and recent company posts
-- Employee headcount trend (growing/shrinking/stable)
-- Notable leadership changes or key hires announced
-- Recent news coverage topics and overall sentiment
-- Relevant Reddit discussions about working at or partnering with {client_name}
-- Twitter/X mentions about the company's culture, products, or strategy
+1. What is {client_name}'s LinkedIn company page follower count? What is the approximate employee count on LinkedIn? Is headcount growing, shrinking, or flat versus 6 months ago?
+2. What has {client_name} posted on LinkedIn recently? Summarize the last 3-5 company posts — are they focused on hiring, product announcements, thought leadership, culture marketing, or awards?
+3. Are there notable Reddit threads (r/sysadmin, r/ITCareerQuestions, r/cscareerquestions, or industry-specific subreddits) discussing {client_name} as an employer, customer, or technology partner?
+4. What is the general sentiment on Twitter/X about {client_name}? Search for recent mentions related to products, customer experience, or employer reputation.
+5. Has {client_name} received any employer brand recognition: Great Place to Work, Fortune Best Companies, Comparably awards, or similar?
 
-Provide a factual summary based on publicly available information.'''
+SCOPE: Do NOT cover financial news, executive changes, or business strategy — those are handled in a separate research track. Focus on social signals, employer brand, and culture indicators.
 
-    INTERNAL_OPS_SYNTHESIS_PROMPT = '''You are a business intelligence analyst. Based on the following research about {client_name}, create a comprehensive internal operations intelligence report for a sales team.
+OUTPUT FORMAT:
+LINKEDIN PRESENCE: Followers | Employee count | Headcount trend | Recent post themes
+SOCIAL SENTIMENT: Platform | Topic | Sentiment (positive/negative/mixed) | Summary
+EMPLOYER BRAND: Awards, recognition, notable culture signals
+SALES-RELEVANT SIGNALS: Social signals indicating buying readiness, organizational change, or technology frustration'''
+
+    INTERNAL_OPS_SYNTHESIS_PROMPT = '''You are a sales intelligence analyst. Synthesize the following research about {client_name} into an internal operations intelligence report.
+
+Your goal is to surface signals that help a sales team understand: Is this company growing or contracting? Are they investing in technology? Are employees frustrated with current tools or processes? Are there leadership gaps that create buying opportunities?
 
 ## Job Postings & Hiring Research:
 {job_postings_research}
