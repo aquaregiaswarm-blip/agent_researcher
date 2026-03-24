@@ -13,7 +13,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Accept API URL as build arg
-ARG NEXT_PUBLIC_API_URL=https://agent-researcher-backend-d26hk3aica-ue.a.run.app
+ARG NEXT_PUBLIC_API_URL=https://agent-researcher-backend-841327020312.us-east1.run.app
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN npm run build
