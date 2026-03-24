@@ -449,7 +449,7 @@ class ApiClient {
     return this.request<SalesPlay[]>('/api/memory/plays/');
   }
 
-  async getPlay(id: string): Promise<SalesPlay> {
+  async getMemoryPlay(id: string): Promise<SalesPlay> {
     return this.request<SalesPlay>(`/api/memory/plays/${id}/`);
   }
 
