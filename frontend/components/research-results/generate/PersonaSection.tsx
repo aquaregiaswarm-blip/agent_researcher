@@ -1,6 +1,7 @@
 import { Persona } from '@/types';
+import StarOrSaveButton from '@/components/research-results/shared/StarOrSaveButton';
 
-function PersonaCard({ persona }: { persona: Persona }) {
+function PersonaCard({ persona, clientName, projectId, iterationId }: { persona: Persona; clientName: string; projectId?: string; iterationId?: string }) {
   const initial = persona.name.charAt(0).toUpperCase();
 
   return (
@@ -9,13 +10,21 @@ function PersonaCard({ persona }: { persona: Persona }) {
         <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-base flex-shrink-0">
           {initial}
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="font-medium text-gray-900 text-sm">{persona.name}</p>
           <p className="text-xs text-gray-500">{persona.title} &middot; {persona.department}</p>
           {persona.seniority_level && (
             <span className="text-xs text-gray-400">{persona.seniority_level}</span>
           )}
         </div>
+        <StarOrSaveButton
+          clientName={clientName}
+          projectId={projectId}
+          iterationId={iterationId}
+          contentType="assets.persona"
+          objectId={persona.id}
+          category="persona"
+        />
       </div>
 
       {persona.background && (
@@ -91,12 +100,15 @@ function PersonaCard({ persona }: { persona: Persona }) {
 }
 
 interface PersonaSectionProps {
+  clientName: string;
+  projectId?: string;
+  iterationId?: string;
   personas: Persona[];
   generating: boolean;
   onGenerate: () => void;
 }
 
-export default function PersonaSection({ personas, generating, onGenerate }: PersonaSectionProps) {
+export default function PersonaSection({ clientName, projectId, iterationId, personas, generating, onGenerate }: PersonaSectionProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -122,7 +134,7 @@ export default function PersonaSection({ personas, generating, onGenerate }: Per
       {personas.length > 0 ? (
         <div className="grid md:grid-cols-2 gap-4">
           {personas.map((p) => (
-            <PersonaCard key={p.id} persona={p} />
+            <PersonaCard key={p.id} persona={p} clientName={clientName} projectId={projectId} iterationId={iterationId} />
           ))}
         </div>
       ) : (

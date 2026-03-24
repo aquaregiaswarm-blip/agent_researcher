@@ -3,14 +3,18 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
 import { OnePager } from '@/types';
+import StarOrSaveButton from '@/components/research-results/shared/StarOrSaveButton';
 
 interface OnePagerSectionProps {
+  clientName: string;
+  projectId?: string;
+  iterationId?: string;
   onePager: OnePager | null;
   generating: boolean;
   onGenerate: () => void;
 }
 
-export default function OnePagerSection({ onePager, generating, onGenerate }: OnePagerSectionProps) {
+export default function OnePagerSection({ clientName, projectId, iterationId, onePager, generating, onGenerate }: OnePagerSectionProps) {
   const [fullScreen, setFullScreen] = useState(false);
 
   const handlePrint = () => {
@@ -35,6 +39,14 @@ export default function OnePagerSection({ onePager, generating, onGenerate }: On
         <div className="flex items-center gap-2">
           {onePager && (
             <>
+              <StarOrSaveButton
+                clientName={clientName}
+                projectId={projectId}
+                iterationId={iterationId}
+                contentType="assets.onepager"
+                objectId={onePager.id}
+                category="one_pager"
+              />
               <button
                 onClick={handlePrint}
                 className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-md transition-colors"

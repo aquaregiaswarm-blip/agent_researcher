@@ -180,7 +180,14 @@ export default function ResearchResults({ job, projectId, iterationId }: Researc
               <SourcesTab sources={job.report.web_sources} />
             )}
             {activeTab === 'raw' && <RawTab result={job.result} />}
-            {activeTab === 'generate' && <GenerateTab researchJobId={job.id} />}
+            {activeTab === 'generate' && (
+              <GenerateTab
+                researchJobId={job.id}
+                clientName={job.client_name}
+                projectId={projectId}
+                iterationId={iterationId}
+              />
+            )}
           </>
         )}
       </div>

@@ -262,4 +262,111 @@ describe('API Client', () => {
       expect(result).toEqual(mockResponse);
     });
   });
+
+  describe('listProfiles', () => {
+    it('sends GET request to profiles endpoint', async () => {
+      const mockProfiles = [{ id: 'p-1', client_name: 'Acme Corp' }];
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockProfiles) });
+
+      const result = await api.listProfiles();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/memory/profiles/',
+        expect.objectContaining({ headers: { 'Content-Type': 'application/json' } })
+      );
+      expect(result).toEqual(mockProfiles);
+    });
+  });
+
+  describe('listPlays', () => {
+    it('sends GET request to plays endpoint', async () => {
+      const mockPlays = [{ id: 'sp-1', title: 'Cloud Pitch' }];
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockPlays) });
+
+      const result = await api.listPlays();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/memory/plays/',
+        expect.objectContaining({ headers: { 'Content-Type': 'application/json' } })
+      );
+      expect(result).toEqual(mockPlays);
+    });
+  });
+
+  describe('listEntries', () => {
+    it('sends GET request to entries endpoint without filter', async () => {
+      const mockEntries = [{ id: 'e-1', title: 'Insight' }];
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockEntries) });
+
+      const result = await api.listEntries();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/memory/entries/',
+        expect.objectContaining({ headers: { 'Content-Type': 'application/json' } })
+      );
+      expect(result).toEqual(mockEntries);
+    });
+
+    it('includes client_name filter when provided', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+
+      await api.listEntries('Acme Corp');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/memory/entries/?client_name=Acme%20Corp',
+        expect.anything()
+      );
+    });
+  });
+
+  describe('queryContext', () => {
+    it('sends POST request with client_name', async () => {
+      const mockContext = { client_profiles: [], sales_plays: [], memory_entries: [], relevance_summary: 'None' };
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockContext) });
+
+      const result = await api.queryContext('Acme Corp');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/memory/context/',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ client_name: 'Acme Corp' }),
+        })
+      );
+      expect(result).toEqual(mockContext);
+    });
+  });
+
+  describe('listCitations', () => {
+    it('sends GET request with research_job filter', async () => {
+      const mockCitations = [{ id: 'c-1', title: 'Acme News' }];
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockCitations) });
+
+      const result = await api.listCitations('job-cit-1');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/assets/citations/?research_job=job-cit-1',
+        expect.objectContaining({ headers: { 'Content-Type': 'application/json' } })
+      );
+      expect(result).toEqual(mockCitations);
+    });
+  });
+
+  describe('verifyCitation', () => {
+    it('sends PATCH with verified: true', async () => {
+      const mockCitation = { id: 'c-1', verified: true };
+      mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockCitation) });
+
+      const result = await api.verifyCitation('c-1');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/assets/citations/c-1/',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ verified: true }),
+        })
+      );
+      expect(result).toEqual(mockCitation);
+    });
+  });
 });

@@ -3,14 +3,18 @@
 import { useState } from 'react';
 import { AccountPlan } from '@/types';
 import AccountPlanDrawer from './AccountPlanDrawer';
+import StarOrSaveButton from '@/components/research-results/shared/StarOrSaveButton';
 
 interface AccountPlanSectionProps {
+  clientName: string;
+  projectId?: string;
+  iterationId?: string;
   accountPlan: AccountPlan | null;
   generating: boolean;
   onGenerate: () => void;
 }
 
-export default function AccountPlanSection({ accountPlan, generating, onGenerate }: AccountPlanSectionProps) {
+export default function AccountPlanSection({ clientName, projectId, iterationId, accountPlan, generating, onGenerate }: AccountPlanSectionProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
@@ -22,12 +26,22 @@ export default function AccountPlanSection({ accountPlan, generating, onGenerate
         </div>
         <div className="flex items-center gap-2">
           {accountPlan && (
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
-            >
-              View Plan
-            </button>
+            <>
+              <StarOrSaveButton
+                clientName={clientName}
+                projectId={projectId}
+                iterationId={iterationId}
+                contentType="assets.accountplan"
+                objectId={accountPlan.id}
+                category="other"
+              />
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+              >
+                View Plan
+              </button>
+            </>
           )}
           <button
             onClick={onGenerate}

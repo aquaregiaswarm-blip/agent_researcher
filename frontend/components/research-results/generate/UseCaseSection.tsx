@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { UseCase, FeasibilityAssessment, RefinedPlay } from '@/types';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import StarOrSaveButton from '@/components/research-results/shared/StarOrSaveButton';
 
 const PRIORITY_COLORS: Record<string, string> = {
   high: 'bg-red-100 text-red-800',
@@ -70,13 +71,21 @@ function FeasibilityPanel({ assessment }: { assessment: FeasibilityAssessment })
   );
 }
 
-function SalesPlayCard({ play }: { play: RefinedPlay }) {
+function SalesPlayCard({ play, clientName, projectId, iterationId }: { play: RefinedPlay; clientName: string; projectId?: string; iterationId?: string }) {
   return (
     <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
-      <div>
-        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-1">Elevator Pitch</p>
-        <p className="text-sm text-blue-900">{play.elevator_pitch}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Elevator Pitch</p>
+        <StarOrSaveButton
+          clientName={clientName}
+          projectId={projectId}
+          iterationId={iterationId}
+          contentType="ideation.refinedplay"
+          objectId={play.id}
+          category="play"
+        />
       </div>
+      <p className="text-sm text-blue-900">{play.elevator_pitch}</p>
 
       {play.discovery_questions.slice(0, 3).length > 0 && (
         <div>
@@ -107,7 +116,7 @@ function SalesPlayCard({ play }: { play: RefinedPlay }) {
   );
 }
 
-function UseCaseCard({ uc }: { uc: UseCase }) {
+function UseCaseCard({ uc, clientName, projectId, iterationId }: { uc: UseCase; clientName: string; projectId?: string; iterationId?: string }) {
   const { addToast, removeToast } = useToast();
   const [feasibility, setFeasibility] = useState<FeasibilityAssessment | null>(null);
   const [play, setPlay] = useState<RefinedPlay | null>(null);
@@ -150,9 +159,19 @@ function UseCaseCard({ uc }: { uc: UseCase }) {
     <div className="border border-gray-200 rounded-lg p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <h5 className="font-medium text-gray-900 text-sm">{uc.title}</h5>
-        <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded capitalize ${PRIORITY_COLORS[uc.priority] ?? PRIORITY_COLORS.low}`}>
-          {uc.priority}
-        </span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className={`px-2 py-0.5 text-xs font-medium rounded capitalize ${PRIORITY_COLORS[uc.priority] ?? PRIORITY_COLORS.low}`}>
+            {uc.priority}
+          </span>
+          <StarOrSaveButton
+            clientName={clientName}
+            projectId={projectId}
+            iterationId={iterationId}
+            contentType="ideation.usecase"
+            objectId={uc.id}
+            category="use_case"
+          />
+        </div>
       </div>
 
       <p className="text-sm text-gray-700">{uc.business_problem}</p>
@@ -175,7 +194,7 @@ function UseCaseCard({ uc }: { uc: UseCase }) {
           <FeasibilityPanel assessment={feasibility} />
           {/* Step 3: Refine */}
           {play ? (
-            <SalesPlayCard play={play} />
+            <SalesPlayCard play={play} clientName={clientName} projectId={projectId} iterationId={iterationId} />
           ) : (
             <button
               onClick={handleRefine}
@@ -213,12 +232,15 @@ function UseCaseCard({ uc }: { uc: UseCase }) {
 
 interface UseCaseSectionProps {
   researchJobId: string;
+  clientName: string;
+  projectId?: string;
+  iterationId?: string;
   useCases: UseCase[];
   generating: boolean;
   onGenerate: () => void;
 }
 
-export default function UseCaseSection({ useCases, generating, onGenerate }: UseCaseSectionProps) {
+export default function UseCaseSection({ clientName, projectId, iterationId, useCases, generating, onGenerate }: UseCaseSectionProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -244,7 +266,7 @@ export default function UseCaseSection({ useCases, generating, onGenerate }: Use
       {useCases.length > 0 ? (
         <div className="space-y-3">
           {useCases.map((uc) => (
-            <UseCaseCard key={uc.id} uc={uc} />
+            <UseCaseCard key={uc.id} uc={uc} clientName={clientName} projectId={projectId} iterationId={iterationId} />
           ))}
         </div>
       ) : (

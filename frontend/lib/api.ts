@@ -17,6 +17,10 @@ import {
   Persona,
   OnePager,
   AccountPlan,
+  ClientProfile,
+  SalesPlay,
+  MemoryEntry,
+  Citation,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -430,6 +434,55 @@ class ApiClient {
   async captureToMemory(jobId: string): Promise<{ client_profile_created: boolean; memory_entries_created: number }> {
     return this.request(`/api/memory/capture/${jobId}/`, {
       method: 'POST',
+    });
+  }
+
+  async listProfiles(): Promise<ClientProfile[]> {
+    return this.request<ClientProfile[]>('/api/memory/profiles/');
+  }
+
+  async getProfile(id: string): Promise<ClientProfile> {
+    return this.request<ClientProfile>(`/api/memory/profiles/${id}/`);
+  }
+
+  async listPlays(): Promise<SalesPlay[]> {
+    return this.request<SalesPlay[]>('/api/memory/plays/');
+  }
+
+  async getPlay(id: string): Promise<SalesPlay> {
+    return this.request<SalesPlay>(`/api/memory/plays/${id}/`);
+  }
+
+  async listEntries(clientName?: string): Promise<MemoryEntry[]> {
+    const qs = clientName ? `?client_name=${encodeURIComponent(clientName)}` : '';
+    return this.request<MemoryEntry[]>(`/api/memory/entries/${qs}`);
+  }
+
+  async getEntry(id: string): Promise<MemoryEntry> {
+    return this.request<MemoryEntry>(`/api/memory/entries/${id}/`);
+  }
+
+  async queryContext(clientName: string): Promise<{ client_profiles: ClientProfile[]; sales_plays: SalesPlay[]; memory_entries: MemoryEntry[]; relevance_summary: string }> {
+    return this.request('/api/memory/context/', {
+      method: 'POST',
+      body: JSON.stringify({ client_name: clientName }),
+    });
+  }
+
+  // Citation endpoints (AGE-24)
+
+  async listCitations(researchJobId: string): Promise<Citation[]> {
+    return this.request<Citation[]>(`/api/assets/citations/?research_job=${researchJobId}`);
+  }
+
+  async getCitation(id: string): Promise<Citation> {
+    return this.request<Citation>(`/api/assets/citations/${id}/`);
+  }
+
+  async verifyCitation(id: string): Promise<Citation> {
+    return this.request<Citation>(`/api/assets/citations/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ verified: true }),
     });
   }
 }

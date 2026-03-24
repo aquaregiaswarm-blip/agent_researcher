@@ -485,3 +485,88 @@ export interface AccountPlan {
   created_at: string;
   updated_at: string;
 }
+
+// Citation types (AGE-24)
+
+export type CitationType =
+  | 'news'
+  | 'website'
+  | 'report'
+  | 'social'
+  | 'financial'
+  | 'press_release'
+  | 'other';
+
+export interface Citation {
+  id: string;
+  research_job: string;
+  citation_type: CitationType;
+  title: string;
+  source: string;
+  url: string;
+  author: string;
+  publication_date: string | null;
+  excerpt: string;
+  relevance_note: string;
+  verified: boolean;
+  verification_date: string | null;
+  created_at: string;
+}
+
+// Memory / Knowledge Base types (AGE-14, AGE-15, AGE-16, AGE-17)
+
+export interface ClientProfile {
+  id: string;
+  client_name: string;
+  industry: string;
+  company_size: string;
+  region: string;
+  key_contacts: Record<string, unknown>[];
+  summary: string;
+  vector_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SalesPlayType =
+  | 'pitch'
+  | 'objection_handler'
+  | 'value_proposition'
+  | 'case_study'
+  | 'competitive_response'
+  | 'discovery_question';
+
+export interface SalesPlay {
+  id: string;
+  title: string;
+  play_type: SalesPlayType;
+  content: string;
+  context: string;
+  industry: string;
+  vertical: string;
+  usage_count: number;
+  success_rate: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type MemoryEntryType =
+  | 'research_insight'
+  | 'client_interaction'
+  | 'deal_outcome'
+  | 'best_practice'
+  | 'lesson_learned';
+
+export interface MemoryEntry {
+  id: string;
+  entry_type: MemoryEntryType;
+  title: string;
+  content: string;
+  client_name: string;
+  industry: string;
+  tags: string[];
+  source_type: string;
+  source_id: string;
+  created_at: string;
+  updated_at: string;
+}

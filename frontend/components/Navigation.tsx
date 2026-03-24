@@ -18,6 +18,7 @@ export default function Navigation() {
     { path: '/research', label: 'Research History' },
     { path: '/projects', label: 'Projects' },
     { path: '/assets', label: 'Assets' },
+    { path: '/memory', label: 'Memory' },
   ];
 
   return (

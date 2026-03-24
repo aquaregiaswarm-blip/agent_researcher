@@ -23,6 +23,7 @@ describe('Navigation', () => {
     expect(screen.getByRole('link', { name: 'Research History' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Projects' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Assets' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Memory' })).toBeTruthy();
   });
 
   it('highlights the active route', () => {
@@ -45,5 +46,6 @@ describe('Navigation', () => {
     expect(screen.getByRole('link', { name: 'Research History' }).getAttribute('href')).toBe('/research');
     expect(screen.getByRole('link', { name: 'Projects' }).getAttribute('href')).toBe('/projects');
     expect(screen.getByRole('link', { name: 'Assets' }).getAttribute('href')).toBe('/assets');
+    expect(screen.getByRole('link', { name: 'Memory' }).getAttribute('href')).toBe('/memory');
   });
 });

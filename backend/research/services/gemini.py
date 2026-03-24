@@ -413,7 +413,7 @@ Produce a cohesive analysis covering these sections. For each section, lead with
     "security_posture": "Certifications held, incidents, CISO name/status, named security vendors, regulatory pressures",
     "data_maturity": "Named platforms (warehouse, BI, ETL), data leadership, governance posture with specifics",
     "financial_signals": ["Each signal should cite the source: 10-K, earnings call quarter, analyst report [N]"],
-    "tech_partnerships": ["Each entry should name the vendor, relationship type, and whether they are a competitive threat"]
+    "tech_partnerships": ["Vendor Name — relationship type (customer/partner/reseller) — competitive threat: yes/no"]
 }}
 
 ## RULES:

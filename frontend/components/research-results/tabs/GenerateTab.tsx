@@ -11,9 +11,12 @@ import AccountPlanSection from '../generate/AccountPlanSection';
 
 interface GenerateTabProps {
   researchJobId: string;
+  clientName: string;
+  projectId?: string;
+  iterationId?: string;
 }
 
-export default function GenerateTab({ researchJobId }: GenerateTabProps) {
+export default function GenerateTab({ researchJobId, clientName, projectId, iterationId }: GenerateTabProps) {
   const { addToast, removeToast } = useToast();
 
   const [useCases, setUseCases] = useState<UseCase[]>([]);
@@ -132,6 +135,9 @@ export default function GenerateTab({ researchJobId }: GenerateTabProps) {
 
       <UseCaseSection
         researchJobId={researchJobId}
+        clientName={clientName}
+        projectId={projectId}
+        iterationId={iterationId}
         useCases={useCases}
         generating={generatingUseCases}
         onGenerate={handleGenerateUseCases}
@@ -140,6 +146,9 @@ export default function GenerateTab({ researchJobId }: GenerateTabProps) {
       <div className="border-t border-gray-100" />
 
       <PersonaSection
+        clientName={clientName}
+        projectId={projectId}
+        iterationId={iterationId}
         personas={personas}
         generating={generatingPersonas}
         onGenerate={handleGeneratePersonas}
@@ -148,6 +157,9 @@ export default function GenerateTab({ researchJobId }: GenerateTabProps) {
       <div className="border-t border-gray-100" />
 
       <OnePagerSection
+        clientName={clientName}
+        projectId={projectId}
+        iterationId={iterationId}
         onePager={onePager}
         generating={generatingOnePager}
         onGenerate={handleGenerateOnePager}
@@ -156,6 +168,9 @@ export default function GenerateTab({ researchJobId }: GenerateTabProps) {
       <div className="border-t border-gray-100" />
 
       <AccountPlanSection
+        clientName={clientName}
+        projectId={projectId}
+        iterationId={iterationId}
         accountPlan={accountPlan}
         generating={generatingAccountPlan}
         onGenerate={handleGenerateAccountPlan}
