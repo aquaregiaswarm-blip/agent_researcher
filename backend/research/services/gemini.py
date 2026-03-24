@@ -131,7 +131,18 @@ class GeminiClient:
 
     PROFILE_QUERY_PROMPT = '''Research basic profile for {client_name}: company overview, headquarters, employee count, revenue, founding year, website. Provide comprehensive factual information.'''
 
-    NEWS_QUERY_PROMPT = '''Find recent news and developments about {client_name}. Include headlines, dates, sources, and brief summaries of each news item. Focus on the most recent and significant news.'''
+    NEWS_QUERY_PROMPT = '''You are an intelligence analyst. Provide a comprehensive briefing on recent current events and news regarding {client_name}.
+
+You MUST use Google Search to fetch this information. Do not rely on your internal training data. Focus strictly on events from the last 90 days.
+
+To ensure you capture any and all news, execute distinct searches for each of the following categories:
+- Financial & Business Operations: Earnings, stock movement, acquisitions, or market share.
+- Leadership & Personnel: Executive changes, layoffs, or major hiring pushes.
+- Products & Services: New releases, updates, or major partnerships.
+- Public Relations: Press releases, controversies, or industry sentiment.
+
+For each article or news item, provide an inline citation linking directly to the source article.
+Include headlines, date(s), source(s), and brief summaries of each news item.'''
 
     LEADERSHIP_QUERY_PROMPT = '''Research key executives and decision makers at {client_name}. Include names, titles, professional backgrounds, and any notable achievements or public statements.'''
 
