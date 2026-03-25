@@ -21,7 +21,7 @@ export default function ReportTab({ report, sources = [] }: { report: ResearchRe
     <div className="space-y-6">
       {/* Company Details */}
       <Section title="Company Details">
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-x-8">
           {report.headquarters && <DetailRow label="Headquarters" value={report.headquarters} />}
           {report.website && (
             <DetailRow label="Website" value={
@@ -40,15 +40,15 @@ export default function ReportTab({ report, sources = [] }: { report: ResearchRe
       <Section title="Digital & AI Assessment">
         <div className="grid md:grid-cols-3 gap-4 mb-4">
           {report.digital_maturity && (
-            <div className="p-3 bg-gray-50 rounded-lg text-center">
-              <div className="text-sm text-gray-500">Digital Maturity</div>
-              <div className="font-medium capitalize">{report.digital_maturity}</div>
+            <div className="p-3 bg-gray-50 rounded-lg text-center border border-gray-200">
+              <div className="text-sm font-medium text-gray-500 mb-1">Digital Maturity</div>
+              <div className="text-lg font-semibold text-gray-900 capitalize">{report.digital_maturity}</div>
             </div>
           )}
           {report.ai_adoption_stage && (
-            <div className="p-3 bg-gray-50 rounded-lg text-center">
-              <div className="text-sm text-gray-500">AI Adoption</div>
-              <div className="font-medium capitalize">{report.ai_adoption_stage}</div>
+            <div className="p-3 bg-gray-50 rounded-lg text-center border border-gray-200">
+              <div className="text-sm font-medium text-gray-500 mb-1">AI Adoption</div>
+              <div className="text-lg font-semibold text-gray-900 capitalize">{report.ai_adoption_stage}</div>
             </div>
           )}
         </div>

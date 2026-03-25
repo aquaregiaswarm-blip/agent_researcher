@@ -30,4 +30,4 @@ RUN SECRET_KEY=build-placeholder python manage.py collectstatic --noinput 2>/dev
 ENV PORT=8080
 EXPOSE ${PORT}
 
-CMD python manage.py migrate --noinput && exec gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --timeout 300
+CMD python manage.py migrate --noinput && exec gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --timeout 1800

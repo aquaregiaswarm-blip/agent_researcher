@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { api } from '@/lib/api';
 import { ResearchFormData, ResearchJob } from '@/types';
-import PromptEditor from './PromptEditor';
 import ResearchResults from './ResearchResults';
 
 export default function ResearchForm() {
@@ -13,16 +12,8 @@ export default function ResearchForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentJob, setCurrentJob] = useState<ResearchJob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState('');
 
   const { register, handleSubmit, formState: { errors } } = useForm<ResearchFormData>();
-
-  useEffect(() => {
-    // Load default prompt
-    api.getDefaultPrompt().then((p) => {
-      setPrompt(p.content);
-    }).catch(console.error);
-  }, []);
 
   const onSubmit = async (data: ResearchFormData) => {
     setIsSubmitting(true);
@@ -30,10 +21,7 @@ export default function ResearchForm() {
     setCurrentJob(null);
 
     try {
-      const job = await api.createResearch({
-        ...data,
-        prompt,
-      });
+      const job = await api.createResearch(data);
 
       // Redirect to the results page immediately
       router.push(`/research/${job.id}`);
@@ -75,8 +63,6 @@ export default function ResearchForm() {
             placeholder="Enter any relevant past sales history, interactions, or notes about this client..."
           />
         </div>
-
-        <PromptEditor value={prompt} onChange={setPrompt} />
 
         <button
           type="submit"
